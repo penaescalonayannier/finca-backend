@@ -31,9 +31,13 @@ public class FincaProducto {
     @Column(name = "stock", nullable = false)
     private Integer stock;
 
+    @Column(name = "activo", nullable = false)
+    private Boolean activo = true;
+
     public FincaProducto(FincaProductoDto dto) {
         this.id = dto.getId();
         this.stock = dto.getStock();
+        this.activo = dto.getActivo() != null ? dto.getActivo() : true;
     }
 
     public FincaProductoDto toAggregate() {
@@ -42,6 +46,7 @@ public class FincaProducto {
                 .fincaId(finca != null ? finca.getId() : null)
                 .productoId(producto != null ? producto.getId() : null)
                 .stock(stock)
+                .activo(activo)
                 .build();
     }
 }

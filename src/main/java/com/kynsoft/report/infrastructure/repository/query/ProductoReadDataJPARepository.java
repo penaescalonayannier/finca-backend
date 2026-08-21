@@ -27,4 +27,10 @@ public interface ProductoReadDataJPARepository extends JpaRepository<Producto, U
     
     @Query("SELECT p FROM Producto p WHERE p.price BETWEEN :minPrice AND :maxPrice")
     List<Producto> findByPriceRange(@Param("minPrice") Double minPrice, @Param("maxPrice") Double maxPrice);
+
+    @Query("SELECT p FROM Producto p WHERE p.active = true AND (" +
+           "LOWER(p.code) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(p.name) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(p.description) LIKE LOWER(CONCAT('%', :query, '%')))")
+    Page<Producto> searchByText(@Param("query") String query, Pageable pageable);
 }

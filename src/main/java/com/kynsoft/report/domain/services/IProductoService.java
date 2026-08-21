@@ -19,4 +19,6 @@ public interface IProductoService {
     ProductoDto findById(UUID id);
 
     PaginatedResponse search(Pageable pageable, List<FilterCriteria> filterCriteria);
+
+    PaginatedResponse search(Pageable pageable, List<FilterCriteria> filterCriteria, String query);
 }

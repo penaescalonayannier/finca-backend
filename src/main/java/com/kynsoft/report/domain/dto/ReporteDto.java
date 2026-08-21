@@ -25,4 +25,5 @@ public class ReporteDto {
     private String fecha; // Campo opcional
     private UUID trabajadorResponsableId;
     private String trabajadorResponsableNombre;
+    private Boolean activo;
 }

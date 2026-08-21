@@ -2,6 +2,7 @@ package com.kynsoft.report.applications.query.responseObject;
 
 import com.kynsof.share.core.domain.bus.query.IResponse;
 import com.kynsoft.report.domain.dto.FincaProductoDto;
+import com.kynsoft.report.domain.dto.TipoProducto;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,6 +23,7 @@ public class FincaProductoResponse implements IResponse {
     private String productoCode;
     private String productoName;
     private Double productoPrice;
+    private TipoProducto productoTipo;
     private Integer stock;
 
     public FincaProductoResponse(FincaProductoDto dto) {
@@ -33,6 +35,7 @@ public class FincaProductoResponse implements IResponse {
         this.productoCode = dto.getProductoCode();
         this.productoName = dto.getProductoName();
         this.productoPrice = dto.getProductoPrice();
+        this.productoTipo = dto.getProductoTipo();
         this.stock = dto.getStock();
     }
 }

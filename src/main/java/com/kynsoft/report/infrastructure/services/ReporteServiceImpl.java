@@ -81,18 +81,14 @@ public class ReporteServiceImpl implements IReporteService {
 
     @Override
     public void delete(UUID id) {
-        try {
-            // Verificar que el producto exista antes de eliminar
-            repositoryQuery.findById(id)
-                    .orElseThrow(() -> new BusinessNotFoundException(new GlobalBusinessException(
-                    DomainErrorMessage.BUSINESS_NOT_FOUND,
-                    new ErrorField("id", "Reporte not found."))));
-            repositoryCommand.deleteById(id);
-        } catch (Exception e) {
-            throw new BusinessNotFoundException(new GlobalBusinessException(
-                    DomainErrorMessage.NOT_DELETE,
-                    new ErrorField("id", "Element cannot be deleted as it has a related element.")));
-        }
+        Reporte reporte = repositoryQuery.findById(id)
+                .orElseThrow(() -> new BusinessNotFoundException(new GlobalBusinessException(
+                DomainErrorMessage.BUSINESS_NOT_FOUND,
+                new ErrorField("id", "Reporte not found."))));
+
+        // Soft delete: marcar como inactivo
+        reporte.setActivo(false);
+        repositoryCommand.save(reporte);
     }
 
     @Override
@@ -106,8 +102,14 @@ public class ReporteServiceImpl implements IReporteService {
 
     @Override
     public PaginatedResponse search(Pageable pageable, List<FilterCriteria> filterCriteria) {
-        GenericSpecificationsBuilder<Producto> specifications = new GenericSpecificationsBuilder<>(filterCriteria);
-        Page<Reporte> data = repositoryQuery.findAll(specifications, pageable);
+        // Construir especificación base con filtros del usuario
+        GenericSpecificationsBuilder<Reporte> specifications = new GenericSpecificationsBuilder<>(filterCriteria);
+
+        // Agregar filtro de activos por defecto
+        org.springframework.data.jpa.domain.Specification<Reporte> activoSpec = (root, query, cb) -> cb.equal(root.get("activo"), true);
+        org.springframework.data.jpa.domain.Specification<Reporte> combinedSpec = org.springframework.data.jpa.domain.Specification.where(specifications).and(activoSpec);
+
+        Page<Reporte> data = repositoryQuery.findAll(combinedSpec, pageable);
         return createPaginatedResponse(data);
     }
 
@@ -404,5 +406,22 @@ public class ReporteServiceImpl implements IReporteService {
                 this.horasPorDia.put(i, "");
             }
         }
+    }
+
+    @Override
+    public String generateCodigo(String year, String mes) {
+        // Obtener el número del mes
+        int mesNumero = getMonthNumber(mes);
+        String mesFormateado = String.format("%02d", mesNumero);
+
+        // Contar reportes existentes para este año y mes
+        long count = repositoryQuery.countByYearAndMes(year, mes);
+
+        // Generar el consecutivo (siguiente número)
+        long consecutivo = count + 1;
+        String consecutivoFormateado = String.format("%02d", consecutivo);
+
+        // Formato: año_mes_consecutivo (ej: 2026_08_01)
+        return year + "_" + mesFormateado + "_" + consecutivoFormateado;
     }
 }

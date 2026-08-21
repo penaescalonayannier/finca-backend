@@ -27,4 +27,15 @@ public interface TrabajadorDiaReadDataJPARepository
            "JOIN FETCH td.trabajador t " +
            "WHERE td.diaTrabajo.id = :diaTrabajoId")
     List<TrabajadorDia> findByDiaTrabajoIdWithDetails(@Param("diaTrabajoId") UUID diaTrabajoId);
+
+    @Query("SELECT td FROM TrabajadorDia td " +
+           "JOIN td.diaTrabajo dt " +
+           "JOIN dt.reporte r " +
+           "WHERE td.trabajador.id = :trabajadorId " +
+           "AND r.year = :year " +
+           "AND r.mes = :mes")
+    List<TrabajadorDia> findByTrabajadorIdAndYearAndMes(
+            @Param("trabajadorId") UUID trabajadorId,
+            @Param("year") String year,
+            @Param("mes") String mes);
 }

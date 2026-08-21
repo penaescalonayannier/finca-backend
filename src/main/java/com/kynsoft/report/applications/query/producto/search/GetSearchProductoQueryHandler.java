@@ -17,6 +17,6 @@ public class GetSearchProductoQueryHandler
 
     @Override
     public PaginatedResponse handle(GetSearchProductoQuery query) {
-        return service.search(query.getPageable(), query.getFilter());
+        return service.search(query.getPageable(), query.getFilter(), query.getQuery());
     }
 }

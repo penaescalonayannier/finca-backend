@@ -45,13 +45,14 @@ public class TrabajadorServiceImpl implements ITrabajadorService {
 
     @Override
     public void delete(UUID id) {
-        try {
-            repositoryCommand.deleteById(id);
-        } catch (Exception e) {
-            throw new BusinessNotFoundException(new GlobalBusinessException(
-                    DomainErrorMessage.NOT_DELETE,
-                    new ErrorField("id", "Element cannot be deleted as it has a related element.")));
-        }
+        Trabajador trabajador = repositoryQuery.findById(id)
+            .orElseThrow(() -> new BusinessNotFoundException(new GlobalBusinessException(
+                    DomainErrorMessage.BUSINESS_NOT_FOUND,
+                    new ErrorField("id", "Trabajador not found."))));
+
+        // Soft delete: marcar como inactivo
+        trabajador.setActivo(false);
+        repositoryCommand.save(trabajador);
     }
 
     @Override
@@ -65,8 +66,14 @@ public class TrabajadorServiceImpl implements ITrabajadorService {
 
     @Override
     public PaginatedResponse search(Pageable pageable, List<FilterCriteria> filterCriteria) {
+        // Construir especificación base con filtros del usuario
         GenericSpecificationsBuilder<Trabajador> specifications = new GenericSpecificationsBuilder<>(filterCriteria);
-        Page<Trabajador> data = repositoryQuery.findAll(specifications, pageable);
+
+        // Agregar filtro de activos por defecto
+        org.springframework.data.jpa.domain.Specification<Trabajador> activoSpec = (root, query, cb) -> cb.equal(root.get("activo"), true);
+        org.springframework.data.jpa.domain.Specification<Trabajador> combinedSpec = org.springframework.data.jpa.domain.Specification.where(specifications).and(activoSpec);
+
+        Page<Trabajador> data = repositoryQuery.findAll(combinedSpec, pageable);
         return createPaginatedResponse(data);
     }
 

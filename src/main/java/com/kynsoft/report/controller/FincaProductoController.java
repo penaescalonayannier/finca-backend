@@ -10,6 +10,12 @@ import com.kynsoft.report.applications.command.fincaproducto.asignar.AsignarProd
 import com.kynsoft.report.applications.command.fincaproducto.actualizar.ActualizarStockFincaProductoCommand;
 import com.kynsoft.report.applications.command.fincaproducto.actualizar.ActualizarStockFincaProductoRequest;
 import com.kynsoft.report.applications.command.fincaproducto.actualizar.ActualizarStockFincaProductoMessage;
+import com.kynsoft.report.applications.command.fincaproducto.entradaproduccion.EntradaProduccionCommand;
+import com.kynsoft.report.applications.command.fincaproducto.entradaproduccion.EntradaProduccionRequest;
+import com.kynsoft.report.applications.command.fincaproducto.entradaproduccion.EntradaProduccionMessage;
+import com.kynsoft.report.applications.command.fincaproducto.remover.RemoverProductoDeFincaCommand;
+import com.kynsoft.report.applications.command.fincaproducto.remover.RemoverProductoDeFincaRequest;
+import com.kynsoft.report.applications.command.fincaproducto.remover.RemoverProductoDeFincaMessage;
 import com.kynsoft.report.applications.query.fincaproducto.getall.GetAllFincaProductoQuery;
 import com.kynsoft.report.applications.query.fincaproducto.getproductos.GetProductosDeFincaQuery;
 import com.kynsoft.report.applications.query.responseObject.FincaProductoListResponse;
@@ -43,6 +49,22 @@ public class FincaProductoController {
             @RequestBody ActualizarStockFincaProductoRequest request) {
         ActualizarStockFincaProductoCommand command = ActualizarStockFincaProductoCommand.fromRequest(request);
         ActualizarStockFincaProductoMessage response = mediator.send(command);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/entrada-produccion")
+    public ResponseEntity<EntradaProduccionMessage> entradaProduccion(
+            @RequestBody EntradaProduccionRequest request) {
+        EntradaProduccionCommand command = EntradaProduccionCommand.fromRequest(request);
+        EntradaProduccionMessage response = mediator.send(command);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/remover")
+    public ResponseEntity<RemoverProductoDeFincaMessage> removerProductoDeFinca(
+            @RequestBody RemoverProductoDeFincaRequest request) {
+        RemoverProductoDeFincaCommand command = RemoverProductoDeFincaCommand.fromRequest(request);
+        RemoverProductoDeFincaMessage response = mediator.send(command);
         return ResponseEntity.ok(response);
     }
 

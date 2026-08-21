@@ -25,4 +25,10 @@ public interface IReporteService {
     ReporteConsolidadoDto getConsolidado(String year, String mes);
 
     ReporteConsolidadoPorResponsablePdfDto getConsolidadoPorResponsable(String year, String mes);
+
+    /**
+     * Genera un código único para el reporte con formato: año_mes_consecutivo
+     * Ejemplo: 2026_08_01, 2026_08_02, etc.
+     */
+    String generateCodigo(String year, String mes);
 }

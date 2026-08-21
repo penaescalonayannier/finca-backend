@@ -15,6 +15,7 @@ import com.kynsoft.report.infrastructure.repository.command.FincaWriteDataJPARep
 import com.kynsoft.report.infrastructure.repository.query.FincaReadDataJPARepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -74,18 +75,14 @@ public class FincaServiceImpl implements IFincaService {
 
     @Override
     public void delete(UUID id) {
-        try {
-            // Verificar que la finca exista antes de eliminar
-            repositoryQuery.findById(id)
-                .orElseThrow(() -> new BusinessNotFoundException(new GlobalBusinessException(
-                        DomainErrorMessage.BUSINESS_NOT_FOUND,
-                        new ErrorField("id", "Finca not found."))));
-            repositoryCommand.deleteById(id);
-        } catch (Exception e) {
-            throw new BusinessNotFoundException(new GlobalBusinessException(
-                    DomainErrorMessage.NOT_DELETE,
-                    new ErrorField("id", "Element cannot be deleted as it has a related element.")));
-        }
+        Finca finca = repositoryQuery.findById(id)
+            .orElseThrow(() -> new BusinessNotFoundException(new GlobalBusinessException(
+                    DomainErrorMessage.BUSINESS_NOT_FOUND,
+                    new ErrorField("id", "Finca not found."))));
+
+        // Soft delete: marcar como inactivo
+        finca.setActivo(false);
+        repositoryCommand.save(finca);
     }
 
     @Override
@@ -108,8 +105,14 @@ public class FincaServiceImpl implements IFincaService {
 
     @Override
     public PaginatedResponse search(Pageable pageable, List<FilterCriteria> filterCriteria) {
+        // Construir especificación base con filtros del usuario
         GenericSpecificationsBuilder<Finca> specifications = new GenericSpecificationsBuilder<>(filterCriteria);
-        Page<Finca> data = repositoryQuery.findAll(specifications, pageable);
+
+        // Agregar filtro de activos por defecto
+        Specification<Finca> activoSpec = (root, query, cb) -> cb.equal(root.get("activo"), true);
+        Specification<Finca> combinedSpec = Specification.where(specifications).and(activoSpec);
+
+        Page<Finca> data = repositoryQuery.findAll(combinedSpec, pageable);
         return createPaginatedResponse(data);
     }
 

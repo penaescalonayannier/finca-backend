@@ -9,7 +9,9 @@ import com.kynsof.share.core.domain.response.PaginatedResponse;
 import com.kynsof.share.core.infrastructure.specifications.GenericSpecificationsBuilder;
 import com.kynsoft.report.applications.query.responseObject.FincaProductoResponse;
 import com.kynsoft.report.domain.dto.FincaProductoDto;
+import com.kynsoft.report.domain.dto.TipoMovimientoStock;
 import com.kynsoft.report.domain.services.IFincaProductoService;
+import com.kynsoft.report.domain.services.IMovimientoStockService;
 import com.kynsoft.report.infrastructure.entity.Finca;
 import com.kynsoft.report.infrastructure.entity.FincaProducto;
 import com.kynsoft.report.infrastructure.entity.Producto;
@@ -34,16 +36,19 @@ public class FincaProductoServiceImpl implements IFincaProductoService {
     private final FincaProductoReadDataJPARepository repositoryQuery;
     private final FincaReadDataJPARepository fincaRepository;
     private final ProductoReadDataJPARepository productoRepository;
+    private final IMovimientoStockService movimientoStockService;
 
     public FincaProductoServiceImpl(
             FincaProductoWriteDataJPARepository repositoryCommand,
             FincaProductoReadDataJPARepository repositoryQuery,
             FincaReadDataJPARepository fincaRepository,
-            ProductoReadDataJPARepository productoRepository) {
+            ProductoReadDataJPARepository productoRepository,
+            IMovimientoStockService movimientoStockService) {
         this.repositoryCommand = repositoryCommand;
         this.repositoryQuery = repositoryQuery;
         this.fincaRepository = fincaRepository;
         this.productoRepository = productoRepository;
+        this.movimientoStockService = movimientoStockService;
     }
 
     @Override
@@ -76,6 +81,20 @@ public class FincaProductoServiceImpl implements IFincaProductoService {
         fincaProducto.setStock(stock);
 
         repositoryCommand.save(fincaProducto);
+
+        // Registrar movimiento de stock inicial
+        movimientoStockService.registrarMovimiento(
+                fincaProducto.getId(),
+                fincaId,
+                productoId,
+                TipoMovimientoStock.STOCK_INICIAL,
+                stock,
+                0,
+                stock,
+                null,
+                null,
+                "Asignación inicial de producto a finca"
+        );
     }
 
     @Override
@@ -85,8 +104,25 @@ public class FincaProductoServiceImpl implements IFincaProductoService {
                 DomainErrorMessage.BUSINESS_NOT_FOUND,
                 new ErrorField("fincaId", "Relationship not found."))));
 
+        Integer stockAnterior = fincaProducto.getStock();
+        Integer diferencia = stock - stockAnterior;
+
         fincaProducto.setStock(stock);
         repositoryCommand.save(fincaProducto);
+
+        // Registrar movimiento de ajuste manual
+        movimientoStockService.registrarMovimiento(
+                fincaProducto.getId(),
+                fincaId,
+                productoId,
+                TipoMovimientoStock.AJUSTE_MANUAL,
+                diferencia,
+                stockAnterior,
+                stock,
+                null,
+                null,
+                "Ajuste manual de stock"
+        );
     }
 
     @Override
@@ -96,7 +132,9 @@ public class FincaProductoServiceImpl implements IFincaProductoService {
                 DomainErrorMessage.BUSINESS_NOT_FOUND,
                 new ErrorField("fincaId", "Relationship not found."))));
 
-        repositoryCommand.delete(fincaProducto);
+        // Soft delete: marcar como inactivo
+        fincaProducto.setActivo(false);
+        repositoryCommand.save(fincaProducto);
     }
 
     @Override
@@ -107,7 +145,12 @@ public class FincaProductoServiceImpl implements IFincaProductoService {
                 DomainErrorMessage.BUSINESS_NOT_FOUND,
                 new ErrorField("fincaId", "Finca not found."))));
 
-        repositoryCommand.deleteByFincaId(fincaId);
+        // Soft delete: marcar todos como inactivos
+        List<FincaProducto> productos = repositoryQuery.findByFincaId(fincaId);
+        for (FincaProducto fp : productos) {
+            fp.setActivo(false);
+        }
+        repositoryCommand.saveAll(productos);
     }
 
     @Override
@@ -142,6 +185,88 @@ public class FincaProductoServiceImpl implements IFincaProductoService {
                 .orElse(0);
     }
 
+    @Override
+    public void entradaProduccion(UUID fincaId, UUID productoId, Integer cantidad, String descripcion) {
+        entradaProduccion(fincaId, productoId, cantidad, descripcion, null);
+    }
+
+    @Override
+    public void entradaProduccion(UUID fincaId, UUID productoId, Integer cantidad, String descripcion, UUID referenciaId) {
+        if (cantidad <= 0) {
+            throw new BusinessNotFoundException(new GlobalBusinessException(
+                    DomainErrorMessage.BUSINESS_NOT_FOUND,
+                    new ErrorField("cantidad", "La cantidad debe ser mayor a 0.")));
+        }
+
+        FincaProducto fincaProducto = repositoryQuery.findByFincaIdAndProductoId(fincaId, productoId)
+                .orElseThrow(() -> new BusinessNotFoundException(new GlobalBusinessException(
+                        DomainErrorMessage.BUSINESS_NOT_FOUND,
+                        new ErrorField("fincaId", "El producto no está asignado a esta finca."))));
+
+        Integer stockAnterior = fincaProducto.getStock();
+        Integer nuevoStock = stockAnterior + cantidad;
+        fincaProducto.setStock(nuevoStock);
+        repositoryCommand.save(fincaProducto);
+
+        // Registrar movimiento de entrada de producción
+        movimientoStockService.registrarMovimiento(
+                fincaProducto.getId(),
+                fincaId,
+                productoId,
+                TipoMovimientoStock.ENTRADA_PRODUCCION,
+                cantidad,
+                stockAnterior,
+                nuevoStock,
+                referenciaId,
+                referenciaId != null ? "produccion_terminada" : null,
+                descripcion != null ? descripcion : "Entrada de producción"
+        );
+    }
+
+    @Override
+    public void decrementarStock(UUID fincaId, UUID productoId, Integer cantidad) {
+        decrementarStock(fincaId, productoId, cantidad, TipoMovimientoStock.AJUSTE_EDICION, null, null);
+    }
+
+    @Override
+    public void decrementarStock(UUID fincaId, UUID productoId, Integer cantidad,
+                                  TipoMovimientoStock tipo, UUID referenciaId, String referenciaTabla) {
+        if (cantidad <= 0) {
+            throw new BusinessNotFoundException(new GlobalBusinessException(
+                    DomainErrorMessage.BUSINESS_NOT_FOUND,
+                    new ErrorField("cantidad", "La cantidad debe ser mayor a 0.")));
+        }
+
+        FincaProducto fincaProducto = repositoryQuery.findByFincaIdAndProductoId(fincaId, productoId)
+                .orElseThrow(() -> new BusinessNotFoundException(new GlobalBusinessException(
+                        DomainErrorMessage.BUSINESS_NOT_FOUND,
+                        new ErrorField("fincaId", "El producto no está asignado a esta finca."))));
+
+        Integer stockAnterior = fincaProducto.getStock();
+        Integer nuevoStock = stockAnterior - cantidad;
+        if (nuevoStock < 0) {
+            throw new BusinessNotFoundException(new GlobalBusinessException(
+                    DomainErrorMessage.BUSINESS_NOT_FOUND,
+                    new ErrorField("stock", "No hay suficiente stock para decrementar. Stock actual: " + stockAnterior)));
+        }
+        fincaProducto.setStock(nuevoStock);
+        repositoryCommand.save(fincaProducto);
+
+        // Registrar movimiento de decremento
+        movimientoStockService.registrarMovimiento(
+                fincaProducto.getId(),
+                fincaId,
+                productoId,
+                tipo,
+                -cantidad,
+                stockAnterior,
+                nuevoStock,
+                referenciaId,
+                referenciaTabla,
+                "Decremento de stock"
+        );
+    }
+
     private FincaProductoDto toDtoWithDetails(FincaProducto fp) {
         return FincaProductoDto.builder()
                 .id(fp.getId())
@@ -152,14 +277,21 @@ public class FincaProductoServiceImpl implements IFincaProductoService {
                 .productoCode(fp.getProducto().getCode())
                 .productoName(fp.getProducto().getName())
                 .productoPrice(fp.getProducto().getPrice())
+                .productoTipo(fp.getProducto().getTipoProducto())
                 .stock(fp.getStock())
                 .build();
     }
 
     @Override
     public PaginatedResponse search(Pageable pageable, List<FilterCriteria> filterCriteria) {
+        // Construir especificación base con filtros del usuario
         GenericSpecificationsBuilder<FincaProducto> specifications = new GenericSpecificationsBuilder<>(filterCriteria);
-        Page<FincaProducto> data = repositoryQuery.findAll(specifications, pageable);
+
+        // Agregar filtro de activos por defecto
+        org.springframework.data.jpa.domain.Specification<FincaProducto> activoSpec = (root, query, cb) -> cb.equal(root.get("activo"), true);
+        org.springframework.data.jpa.domain.Specification<FincaProducto> combinedSpec = org.springframework.data.jpa.domain.Specification.where(specifications).and(activoSpec);
+
+        Page<FincaProducto> data = repositoryQuery.findAll(combinedSpec, pageable);
         return createPaginatedResponse(data);
     }
 
@@ -174,6 +306,7 @@ public class FincaProductoServiceImpl implements IFincaProductoService {
                 fp.getProducto().getCode(),
                 fp.getProducto().getName(),
                 fp.getProducto().getPrice(),
+                fp.getProducto().getTipoProducto(),
                 fp.getStock()
         ))
                 .collect(Collectors.toList());

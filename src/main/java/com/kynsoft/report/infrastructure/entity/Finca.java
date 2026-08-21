@@ -31,11 +31,15 @@ public class Finca {
     @Column(name = "description", length = 500)
     private String description;
 
+    @Column(name = "activo", nullable = false)
+    private Boolean activo = true;
+
     public Finca(FincaDto dto) {
         this.id = dto.getId();
         this.code = dto.getCode();
         this.name = dto.getName();
         this.description = dto.getDescription();
+        this.activo = dto.getActivo() != null ? dto.getActivo() : true;
     }
 
     public FincaDto toAggregate() {
@@ -45,6 +49,7 @@ public class Finca {
                 .code(code)
                 .name(name)
                 .description(description)
+                .activo(activo)
                 .build();
     }
 }

@@ -56,6 +56,9 @@ public class Reporte {
     @OneToMany(mappedBy = "reporte", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<DiaTrabajo> dias = new ArrayList<>();
 
+    @Column(name = "activo", nullable = false)
+    private Boolean activo = true;
+
     public Reporte(ReporteDto dto) {
         this.id = dto.getId();
         this.bloque = dto.getBloque();
@@ -67,6 +70,7 @@ public class Reporte {
         this.mes = dto.getMes();
         this.fecha = dto.getFecha();
         this.trabajadorResponsableId = dto.getTrabajadorResponsableId();
+        this.activo = dto.getActivo() != null ? dto.getActivo() : true;
         // NOTA: No se asignan los días aquí para evitar recursión
     }
 
@@ -83,6 +87,7 @@ public class Reporte {
                 .fecha(fecha)
                 .trabajadorResponsableId(trabajadorResponsableId)
                 .trabajadorResponsableNombre(trabajadorResponsable != null ? trabajadorResponsable.getNombre() : null)
+                .activo(activo)
                 .build();
     }
 }

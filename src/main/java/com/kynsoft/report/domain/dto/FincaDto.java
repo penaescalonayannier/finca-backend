@@ -18,4 +18,5 @@ public class FincaDto {
     private String code;
     private String name;
     private String description;
+    private Boolean activo;
 }

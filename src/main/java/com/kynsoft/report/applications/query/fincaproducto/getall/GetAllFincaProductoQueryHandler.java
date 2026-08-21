@@ -37,6 +37,7 @@ public class GetAllFincaProductoQueryHandler
                 fp.getProducto().getCode(),
                 fp.getProducto().getName(),
                 fp.getProducto().getPrice(),
+                fp.getProducto().getTipoProducto(),
                 fp.getStock()
         ))
                 .collect(Collectors.toList());
