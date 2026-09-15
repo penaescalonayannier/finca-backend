@@ -1,6 +1,6 @@
 package com.kynsoft.report.applications.command.fincaproducto.entradaproduccion;
 
-import com.kynsof.share.core.domain.bus.command.ICommandHandler;
+import com.kynsoft.share.core.domain.bus.command.ICommandHandler;
 import com.kynsoft.report.domain.services.IFincaProductoService;
 import org.springframework.stereotype.Component;
 
@@ -15,12 +15,23 @@ public class EntradaProduccionCommandHandler implements ICommandHandler<EntradaP
 
     @Override
     public void handle(EntradaProduccionCommand command) {
-        fincaProductoService.entradaProduccion(
-                command.getFincaId(),
-                command.getProductoId(),
-                command.getCantidad(),
-                command.getDescripcion()
-        );
+        // Use overload with centroCosto if provided, otherwise use simple version
+        if (command.getCentroCosto() != null && !command.getCentroCosto().isEmpty()) {
+            fincaProductoService.entradaProduccion(
+                    command.getFincaId(),
+                    command.getProductoId(),
+                    command.getCantidad(),
+                    command.getDescripcion(),
+                    command.getCentroCosto()
+            );
+        } else {
+            fincaProductoService.entradaProduccion(
+                    command.getFincaId(),
+                    command.getProductoId(),
+                    command.getCantidad(),
+                    command.getDescripcion()
+            );
+        }
 
         // Obtener el nuevo stock para incluirlo en el mensaje
         Integer nuevoStock = fincaProductoService.obtenerStock(command.getFincaId(), command.getProductoId());

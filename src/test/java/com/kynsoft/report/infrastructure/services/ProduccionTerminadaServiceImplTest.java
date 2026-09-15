@@ -1,6 +1,6 @@
 package com.kynsoft.report.infrastructure.services;
 
-import com.kynsof.share.core.domain.exception.BusinessNotFoundException;
+import com.kynsoft.share.core.domain.exception.BusinessNotFoundException;
 import com.kynsoft.report.domain.dto.CreateProduccionTerminadaResult;
 import com.kynsoft.report.domain.dto.DeleteProduccionTerminadaResult;
 import com.kynsoft.report.domain.dto.FincaProductoDto;

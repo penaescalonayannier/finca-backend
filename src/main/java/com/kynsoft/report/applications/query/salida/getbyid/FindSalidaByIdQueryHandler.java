@@ -1,6 +1,6 @@
 package com.kynsoft.report.applications.query.salida.getbyid;
 
-import com.kynsof.share.core.domain.bus.query.IQueryHandler;
+import com.kynsoft.share.core.domain.bus.query.IQueryHandler;
 import com.kynsoft.report.applications.query.responseObject.ItemSalidaResponse;
 import com.kynsoft.report.applications.query.responseObject.SalidaResponse;
 import com.kynsoft.report.domain.dto.SalidaDto;

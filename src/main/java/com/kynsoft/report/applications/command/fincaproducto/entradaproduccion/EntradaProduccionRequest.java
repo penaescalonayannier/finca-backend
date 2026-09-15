@@ -16,4 +16,5 @@ public class EntradaProduccionRequest {
     private UUID productoId;
     private Integer cantidad;
     private String descripcion;
+    private String centroCosto;  // Código del centro de costo para contabilidad (ej: 700.01.04)
 }

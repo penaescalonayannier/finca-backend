@@ -19,6 +19,7 @@ public class MovimientoStockDto {
     private UUID fincaProductoId;
     private UUID fincaId;
     private UUID productoId;
+    private UUID almacenId;
     private TipoMovimientoStock tipo;
     private Integer cantidad;
     private Integer stockAnterior;
@@ -26,9 +27,12 @@ public class MovimientoStockDto {
     private UUID referenciaId;
     private String referenciaTabla;
     private String descripcion;
+    private String observaciones;
     private LocalDateTime fecha;
+    private String centroCosto;  // Código del centro de costo para contabilidad
 
     // Campos adicionales para mostrar información relacionada
     private String fincaNombre;
     private String productoNombre;
+    private String almacenNombre;
 }

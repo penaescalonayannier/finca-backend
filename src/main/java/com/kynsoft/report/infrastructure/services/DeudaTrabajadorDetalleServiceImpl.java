@@ -1,8 +1,8 @@
 package com.kynsoft.report.infrastructure.services;
 
-import com.kynsof.share.core.domain.request.FilterCriteria;
-import com.kynsof.share.core.domain.response.PaginatedResponse;
-import com.kynsof.share.core.infrastructure.specifications.GenericSpecificationsBuilder;
+import com.kynsoft.share.core.domain.request.FilterCriteria;
+import com.kynsoft.share.core.domain.response.PaginatedResponse;
+import com.kynsoft.share.core.infrastructure.specifications.GenericSpecificationsBuilder;
 import com.kynsoft.report.domain.dto.DeudaTrabajadorDetalleDto;
 import com.kynsoft.report.domain.services.IDeudaTrabajadorDetalleService;
 import com.kynsoft.report.infrastructure.entity.DeudaTrabajadorDetalle;
@@ -29,6 +29,13 @@ public class DeudaTrabajadorDetalleServiceImpl implements IDeudaTrabajadorDetall
             DeudaTrabajadorDetalleReadDataJPARepository repositoryQuery) {
         this.repositoryCommand = repositoryCommand;
         this.repositoryQuery = repositoryQuery;
+    }
+
+    @Override
+    public UUID create(DeudaTrabajadorDetalleDto dto) {
+        DeudaTrabajadorDetalle entity = new DeudaTrabajadorDetalle(dto);
+        DeudaTrabajadorDetalle saved = repositoryCommand.save(entity);
+        return saved.getId();
     }
 
     @Override

@@ -4,6 +4,7 @@ import com.kynsoft.report.infrastructure.entity.DeudaTrabajadorDetalle;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -11,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.UUID;
 
+@Transactional(readOnly = true, transactionManager = "readTransactionManager")
 public interface DeudaTrabajadorDetalleReadDataJPARepository extends JpaRepository<DeudaTrabajadorDetalle, UUID>, JpaSpecificationExecutor<DeudaTrabajadorDetalle> {
 
     @Query("SELECT d FROM DeudaTrabajadorDetalle d WHERE d.trabajadorId = :trabajadorId AND d.activo = true ORDER BY d.fecha DESC")

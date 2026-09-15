@@ -1,7 +1,7 @@
 package com.kynsoft.report.domain.services;
 
-import com.kynsof.share.core.domain.request.FilterCriteria;
-import com.kynsof.share.core.domain.response.PaginatedResponse;
+import com.kynsoft.share.core.domain.request.FilterCriteria;
+import com.kynsoft.share.core.domain.response.PaginatedResponse;
 import com.kynsoft.report.domain.dto.ReporteConsolidadoDto;
 import com.kynsoft.report.domain.dto.ReporteConsolidadoPorResponsablePdfDto;
 import com.kynsoft.report.domain.dto.ReporteDto;
@@ -31,4 +31,10 @@ public interface IReporteService {
      * Ejemplo: 2026_08_01, 2026_08_02, etc.
      */
     String generateCodigo(String year, String mes);
+
+    /**
+     * Obtiene todos los reportes donde participó un trabajador en un mes/año específico.
+     * Incluye el detalle de días y horas por cada reporte.
+     */
+    List<ReporteDto> getReportesPorTrabajador(UUID trabajadorId, String year, String mes);
 }

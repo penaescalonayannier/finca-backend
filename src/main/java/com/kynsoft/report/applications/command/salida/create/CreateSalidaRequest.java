@@ -18,6 +18,7 @@ public class CreateSalidaRequest {
     // RN-09: tipo se determina automáticamente según destino
     private DestinoSalida destino;
     private UUID fincaProductoId;
+    private UUID almacenFincaProductoId; // Optional: when creating from almacen view
     private String observaciones;
     private List<ItemSalidaDto> items;
 }

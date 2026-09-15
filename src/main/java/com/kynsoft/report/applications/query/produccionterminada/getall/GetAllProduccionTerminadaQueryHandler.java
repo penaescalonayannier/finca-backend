@@ -1,8 +1,8 @@
 package com.kynsoft.report.applications.query.produccionterminada.getall;
 
-import com.kynsof.share.core.domain.bus.query.IQueryHandler;
-import com.kynsof.share.core.domain.response.PaginatedResponse;
-import com.kynsof.share.core.infrastructure.specifications.GenericSpecificationsBuilder;
+import com.kynsoft.share.core.domain.bus.query.IQueryHandler;
+import com.kynsoft.share.core.domain.response.PaginatedResponse;
+import com.kynsoft.share.core.infrastructure.specifications.GenericSpecificationsBuilder;
 import com.kynsoft.report.applications.query.responseObject.ProduccionTerminadaResponse;
 import com.kynsoft.report.infrastructure.entity.ProduccionTerminada;
 import com.kynsoft.report.infrastructure.repository.query.ProduccionTerminadaReadDataJPARepository;
@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 
 @Component
 @AllArgsConstructor
-public class GetAllProduccionTerminadaQueryHandler 
+public class GetAllProduccionTerminadaQueryHandler
         implements IQueryHandler<GetAllProduccionTerminadaQuery, PaginatedResponse> {
 
     private final ProduccionTerminadaReadDataJPARepository repositoryQuery;
@@ -28,22 +28,7 @@ public class GetAllProduccionTerminadaQueryHandler
         Page<ProduccionTerminada> data = repositoryQuery.findAll(specifications, query.getPageable());
 
         List<ProduccionTerminadaResponse> responses = data.getContent().stream()
-                .map(pt -> new ProduccionTerminadaResponse(
-                        pt.getId(),
-                        pt.getFincaId(),
-                        pt.getFinca() != null ? pt.getFinca().getCode() : null,
-                        pt.getFinca() != null ? pt.getFinca().getName() : null,
-                        pt.getProductoId(),
-                        pt.getProducto() != null ? pt.getProducto().getCode() : null,
-                        pt.getProducto() != null ? pt.getProducto().getName() : null,
-                        pt.getFecha(),
-                        pt.getCantidadTerminada(),
-                        pt.getTrabajadorEntregaId(),
-                        pt.getTrabajadorEntrega() != null ? pt.getTrabajadorEntrega().getNombre() : null,
-                        pt.getTrabajadorRecibeId(),
-                        pt.getTrabajadorRecibe() != null ? pt.getTrabajadorRecibe().getNombre() : null,
-                        pt.getObservaciones()
-                ))
+                .map(pt -> new ProduccionTerminadaResponse(pt.toAggregate()))
                 .collect(Collectors.toList());
 
         return new PaginatedResponse(

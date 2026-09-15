@@ -1,7 +1,7 @@
 package com.kynsoft.report.applications.command.fincaproducto.entradaproduccion;
 
-import com.kynsof.share.core.domain.bus.command.ICommand;
-import com.kynsof.share.core.domain.bus.command.ICommandMessage;
+import com.kynsoft.share.core.domain.bus.command.ICommand;
+import com.kynsoft.share.core.domain.bus.command.ICommandMessage;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,13 +16,15 @@ public class EntradaProduccionCommand implements ICommand {
     private UUID productoId;
     private Integer cantidad;
     private String descripcion;
+    private String centroCosto;
 
     public static EntradaProduccionCommand fromRequest(EntradaProduccionRequest request) {
         return new EntradaProduccionCommand(
                 request.getFincaId(),
                 request.getProductoId(),
                 request.getCantidad(),
-                request.getDescripcion()
+                request.getDescripcion(),
+                request.getCentroCosto()
         );
     }
 

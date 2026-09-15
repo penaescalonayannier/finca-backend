@@ -1,6 +1,6 @@
 package com.kynsoft.report.applications.query.deudaTrabajador.getById;
 
-import com.kynsof.share.core.domain.bus.query.IQueryHandler;
+import com.kynsoft.share.core.domain.bus.query.IQueryHandler;
 import com.kynsoft.report.applications.query.responseObject.DeudaTrabajadorResponse;
 import com.kynsoft.report.domain.dto.DeudaTrabajadorDto;
 import com.kynsoft.report.domain.services.IDeudaTrabajadorService;

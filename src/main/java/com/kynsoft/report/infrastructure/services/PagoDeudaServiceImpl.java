@@ -1,20 +1,24 @@
 package com.kynsoft.report.infrastructure.services;
 
-import com.kynsof.share.core.domain.exception.BusinessNotFoundException;
-import com.kynsof.share.core.domain.exception.DomainErrorMessage;
-import com.kynsof.share.core.domain.exception.GlobalBusinessException;
-import com.kynsof.share.core.domain.response.ErrorField;
+import com.kynsoft.share.core.domain.exception.BusinessNotFoundException;
+import com.kynsoft.share.core.domain.exception.DomainErrorMessage;
+import com.kynsoft.share.core.domain.exception.GlobalBusinessException;
+import com.kynsoft.share.core.domain.response.ErrorField;
 import com.kynsoft.report.domain.dto.DeudaTrabajadorDetalleDto;
 import com.kynsoft.report.domain.dto.PagoDeudaDto;
+import com.kynsoft.report.domain.dto.TipoDocumento;
 import com.kynsoft.report.domain.dto.TipoMovimiento;
 import com.kynsoft.report.domain.services.IDeudaTrabajadorDetalleService;
+import com.kynsoft.report.domain.services.INumeracionService;
 import com.kynsoft.report.domain.services.IPagoDeudaService;
 import com.kynsoft.report.infrastructure.entity.DeudaTrabajador;
 import com.kynsoft.report.infrastructure.entity.PagoDeuda;
+import com.kynsoft.report.infrastructure.entity.Trabajador;
 import com.kynsoft.report.infrastructure.repository.command.DeudaTrabajadorWriteDataJPARepository;
 import com.kynsoft.report.infrastructure.repository.command.PagoDeudaWriteDataJPARepository;
 import com.kynsoft.report.infrastructure.repository.query.DeudaTrabajadorReadDataJPARepository;
 import com.kynsoft.report.infrastructure.repository.query.PagoDeudaReadDataJPARepository;
+import com.kynsoft.report.infrastructure.repository.query.TrabajadorReadDataJPARepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,24 +28,31 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class PagoDeudaServiceImpl implements IPagoDeudaService {
 
     private final PagoDeudaWriteDataJPARepository pagoWriteRepository;
     private final PagoDeudaReadDataJPARepository pagoReadRepository;
     private final DeudaTrabajadorReadDataJPARepository deudaReadRepository;
     private final DeudaTrabajadorWriteDataJPARepository deudaWriteRepository;
+    private final TrabajadorReadDataJPARepository trabajadorReadRepository;
     private final IDeudaTrabajadorDetalleService detalleService;
+    private final INumeracionService numeracionService;
 
     public PagoDeudaServiceImpl(PagoDeudaWriteDataJPARepository pagoWriteRepository,
                                  PagoDeudaReadDataJPARepository pagoReadRepository,
                                  DeudaTrabajadorReadDataJPARepository deudaReadRepository,
                                  DeudaTrabajadorWriteDataJPARepository deudaWriteRepository,
-                                 IDeudaTrabajadorDetalleService detalleService) {
+                                 TrabajadorReadDataJPARepository trabajadorReadRepository,
+                                 IDeudaTrabajadorDetalleService detalleService,
+                                 INumeracionService numeracionService) {
         this.pagoWriteRepository = pagoWriteRepository;
         this.pagoReadRepository = pagoReadRepository;
         this.deudaReadRepository = deudaReadRepository;
         this.deudaWriteRepository = deudaWriteRepository;
+        this.trabajadorReadRepository = trabajadorReadRepository;
         this.detalleService = detalleService;
+        this.numeracionService = numeracionService;
     }
 
     @Override
@@ -60,7 +71,22 @@ public class PagoDeudaServiceImpl implements IPagoDeudaService {
                     new ErrorField("monto", "El monto del pago no puede ser mayor a la deuda actual.")));
         }
 
-        // Crear el registro de pago
+        // Obtener el trabajador para saber su finca
+        Trabajador trabajador = trabajadorReadRepository.findById(dto.getTrabajadorId())
+                .orElseThrow(() -> new BusinessNotFoundException(new GlobalBusinessException(
+                        DomainErrorMessage.BUSINESS_NOT_FOUND,
+                        new ErrorField("trabajadorId", "Trabajador no encontrado."))));
+
+        UUID fincaId = trabajador.getFincaId();
+
+        // Generar número de recibo
+        String numeroRecibo = numeracionService.generarSiguienteNumero(fincaId, TipoDocumento.RECIBO);
+
+        // Capturar saldos
+        Double saldoAnterior = deuda.getImporte();
+        Double saldoNuevo = saldoAnterior - dto.getMonto();
+
+        // Crear el registro de pago con todos los campos
         PagoDeudaDto pagoDto = PagoDeudaDto.builder()
                 .id(UUID.randomUUID())
                 .trabajadorId(dto.getTrabajadorId())
@@ -68,14 +94,18 @@ public class PagoDeudaServiceImpl implements IPagoDeudaService {
                 .formaPago(dto.getFormaPago())
                 .referenciaBancaria(dto.getReferenciaBancaria())
                 .fecha(LocalDateTime.now())
+                .numeroRecibo(numeroRecibo)
+                .saldoAnterior(saldoAnterior)
+                .saldoNuevo(saldoNuevo)
+                .concepto(dto.getConcepto() != null ? dto.getConcepto() : "Pago de deuda")
+                .fincaId(fincaId)
                 .build();
 
         PagoDeuda pago = new PagoDeuda(pagoDto);
         pagoWriteRepository.save(pago);
 
         // Disminuir la deuda
-        Double nuevaDeuda = deuda.getImporte() - dto.getMonto();
-        deuda.setImporte(nuevaDeuda);
+        deuda.setImporte(saldoNuevo);
         deudaWriteRepository.save(deuda);
 
         // Registrar en la tabla de auditoría
@@ -96,6 +126,15 @@ public class PagoDeudaServiceImpl implements IPagoDeudaService {
         aplicarPagoFIFO(dto.getTrabajadorId(), dto.getMonto());
 
         return pago.getId();
+    }
+
+    @Override
+    public PagoDeudaDto findById(UUID id) {
+        return pagoReadRepository.findById(id)
+                .map(PagoDeuda::toAggregate)
+                .orElseThrow(() -> new BusinessNotFoundException(new GlobalBusinessException(
+                        DomainErrorMessage.BUSINESS_NOT_FOUND,
+                        new ErrorField("id", "Pago no encontrado."))));
     }
 
     @Override

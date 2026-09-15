@@ -2,6 +2,7 @@ package com.kynsoft.report.infrastructure.repository.query;
 
 import com.kynsoft.report.infrastructure.entity.FincaProducto;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.repository.query.Param;
@@ -14,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
+@Transactional(readOnly = true, transactionManager = "readTransactionManager")
 public interface FincaProductoReadDataJPARepository extends JpaRepository<FincaProducto, UUID>, JpaSpecificationExecutor<FincaProducto> {
 
     @Override
@@ -23,6 +25,8 @@ public interface FincaProductoReadDataJPARepository extends JpaRepository<FincaP
     List<FincaProducto> findByFincaIdAndActivoTrue(UUID fincaId);
 
     List<FincaProducto> findByProductoIdAndActivoTrue(UUID productoId);
+
+    Long countByFincaIdAndActivoTrue(UUID fincaId);
 
     Optional<FincaProducto> findByFincaIdAndProductoIdAndActivoTrue(UUID fincaId, UUID productoId);
 
@@ -56,4 +60,10 @@ public interface FincaProductoReadDataJPARepository extends JpaRepository<FincaP
            "JOIN FETCH fp.producto p " +
            "WHERE fp.id = :id")
     Optional<FincaProducto> findByIdWithDetails(@Param("id") UUID id);
+
+    @Query("SELECT fp FROM FincaProducto fp " +
+           "JOIN FETCH fp.finca f " +
+           "JOIN FETCH fp.producto p " +
+           "WHERE fp.id IN :ids")
+    List<FincaProducto> findByIdInWithDetails(@Param("ids") List<UUID> ids);
 }

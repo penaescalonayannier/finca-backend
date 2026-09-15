@@ -1,9 +1,10 @@
 package com.kynsoft.report.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kynsof.share.core.domain.bus.query.IQuery;
-import com.kynsof.share.core.domain.response.PaginatedResponse;
-import com.kynsof.share.core.infrastructure.bus.IMediator;
+import com.kynsoft.share.core.domain.bus.query.IQuery;
+import com.kynsoft.share.core.domain.response.PaginatedResponse;
+import com.kynsoft.share.core.infrastructure.bus.IMediator;
+import com.kynsoft.report.domain.services.IFincaProductoService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -36,6 +37,9 @@ class FincaProductoControllerIntegrationTest {
 
     @MockBean
     private IMediator mediator;
+
+    @MockBean
+    private IFincaProductoService fincaProductoService;
 
     private UUID fincaId;
     private UUID productoId;

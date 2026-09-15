@@ -32,6 +32,9 @@ public class MovimientoStock {
     @Column(name = "producto_id", nullable = false)
     private UUID productoId;
 
+    @Column(name = "almacen_id")
+    private UUID almacenId;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo", nullable = false)
     private TipoMovimientoStock tipo;
@@ -54,14 +57,28 @@ public class MovimientoStock {
     @Column(name = "descripcion")
     private String descripcion;
 
+    @Column(name = "observaciones", length = 500)
+    private String observaciones;
+
     @Column(name = "fecha", nullable = false)
     private LocalDateTime fecha;
+
+    @PrePersist
+    protected void onCreate() {
+        if (id == null) {
+            id = UUID.randomUUID();
+        }
+        if (fecha == null) {
+            fecha = LocalDateTime.now();
+        }
+    }
 
     public MovimientoStock(MovimientoStockDto dto) {
         this.id = dto.getId();
         this.fincaProductoId = dto.getFincaProductoId();
         this.fincaId = dto.getFincaId();
         this.productoId = dto.getProductoId();
+        this.almacenId = dto.getAlmacenId();
         this.tipo = dto.getTipo();
         this.cantidad = dto.getCantidad();
         this.stockAnterior = dto.getStockAnterior();
@@ -69,6 +86,7 @@ public class MovimientoStock {
         this.referenciaId = dto.getReferenciaId();
         this.referenciaTabla = dto.getReferenciaTabla();
         this.descripcion = dto.getDescripcion();
+        this.observaciones = dto.getObservaciones();
         this.fecha = dto.getFecha();
     }
 
@@ -78,6 +96,7 @@ public class MovimientoStock {
                 .fincaProductoId(fincaProductoId)
                 .fincaId(fincaId)
                 .productoId(productoId)
+                .almacenId(almacenId)
                 .tipo(tipo)
                 .cantidad(cantidad)
                 .stockAnterior(stockAnterior)
@@ -85,6 +104,7 @@ public class MovimientoStock {
                 .referenciaId(referenciaId)
                 .referenciaTabla(referenciaTabla)
                 .descripcion(descripcion)
+                .observaciones(observaciones)
                 .fecha(fecha)
                 .build();
     }

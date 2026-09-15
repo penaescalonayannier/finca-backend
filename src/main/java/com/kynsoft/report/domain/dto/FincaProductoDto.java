@@ -15,10 +15,14 @@ import java.util.UUID;
 @Builder
 public class FincaProductoDto {
     private UUID id;
+    private UUID fincaProductoId; // ID real del FincaProducto para operaciones de salida
     private UUID fincaId;
     private UUID productoId;
     private Integer stock;
-    
+    private Integer stockMinimo;
+    private Integer stockMaximo;
+    private EstadoStock estadoStock;
+
     // Campos adicionales para mostrar información relacionada
     private String fincaCode;
     private String fincaName;
@@ -27,4 +31,16 @@ public class FincaProductoDto {
     private Double productoPrice;
     private TipoProducto productoTipo;
     private Boolean activo;
+
+    // Campo calculado (legacy, usar estadoStock)
+    public Boolean getAlertaStockBajo() {
+        return estadoStock == EstadoStock.CRITICO || estadoStock == EstadoStock.BAJO;
+    }
+
+    // Calcula déficit si hay alerta
+    public Integer getDeficit() {
+        if (stockMinimo == null || stockMinimo == 0 || stock == null) return 0;
+        if (stock >= stockMinimo) return 0;
+        return stockMinimo - stock;
+    }
 }

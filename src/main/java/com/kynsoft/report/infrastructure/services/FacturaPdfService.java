@@ -16,14 +16,25 @@ import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
+import com.kynsoft.report.domain.dto.ConfiguracionEmpresaDto;
+import com.kynsoft.report.domain.dto.DestinoSalida;
 import com.kynsoft.report.domain.dto.ItemSalidaDto;
 import com.kynsoft.report.domain.dto.SalidaDto;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
 import java.time.format.DateTimeFormatter;
+import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.StringJoiner;
 
+/**
+ * Servicio para generación de documentos PDF según modelos oficiales cubanos.
+ * Implementa los formatos SC-2-08 (Vale de Entrega o Devolución) y SC-2-12 (Factura)
+ * según Resolución 11/2007 y Resolución 55/2021 del MFP.
+ */
 @Service
 public class FacturaPdfService {
 
@@ -32,8 +43,11 @@ public class FacturaPdfService {
     private static final DeviceRgb BORDER_COLOR = new DeviceRgb(200, 200, 200);
     private static final DeviceRgb TEXT_DARK = new DeviceRgb(51, 51, 51);
 
-    public byte[] generarFactura(SalidaDto salida, String suministradorNombre, String suministradorCodigo,
-                                  String suministradorDir, String suministradorMunicipio) throws Exception {
+    /**
+     * Genera factura/vale usando ConfiguracionEmpresaDto.
+     * Formato según modelos oficiales SC-2-08 (Vale) o SC-2-12 (Factura).
+     */
+    public byte[] generarFactura(SalidaDto salida, ConfiguracionEmpresaDto empresa) throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PdfWriter writer = new PdfWriter(baos);
         PdfDocument pdf = new PdfDocument(writer);
@@ -43,22 +57,153 @@ public class FacturaPdfService {
         PdfFont fontBold = PdfFontFactory.createFont("Helvetica-Bold");
         PdfFont fontNormal = PdfFontFactory.createFont("Helvetica");
 
-        // ========== FACTURA ==========
-        generarPaginaFactura(document, salida, fontBold, fontNormal,
-                suministradorNombre, suministradorCodigo, suministradorDir, suministradorMunicipio);
+        // ========== FACTURA/VALE ==========
+        generarPaginaFactura(document, salida, empresa, fontBold, fontNormal);
 
-        // ========== LISTADO DE TRABAJADORES (continúa o nueva página según espacio) ==========
+        // ========== LISTADO DE TRABAJADORES ==========
         generarPaginaTrabajadores(document, salida, fontBold, fontNormal);
 
         document.close();
         return baos.toByteArray();
     }
 
-    private void generarPaginaFactura(Document document, SalidaDto salida, PdfFont fontBold, PdfFont fontNormal,
-                                       String suministradorNombre, String suministradorCodigo,
-                                       String suministradorDir, String suministradorMunicipio) {
+    /**
+     * Genera una representación consolidada de vales ya emitidos. Es un documento de consulta e
+     * impresión: no crea ni modifica salidas, movimientos de stock, deudas ni asientos contables.
+     */
+    public byte[] generarValesConsolidados(List<SalidaDto> salidas, LocalDate fecha,
+                                            DestinoSalida destino, ConfiguracionEmpresaDto empresa) throws Exception {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        Document document = new Document(new PdfDocument(new PdfWriter(baos)), PageSize.LETTER);
+        document.setMargins(30, 30, 30, 30);
 
-        String tipoDoc = salida.getTipo().name().equals("VALE") ? "VALE DE SALIDA" : "FACTURA";
+        PdfFont fontBold = PdfFontFactory.createFont("Helvetica-Bold");
+        PdfFont fontNormal = PdfFontFactory.createFont("Helvetica");
+        StringJoiner fincas = new StringJoiner(", ");
+        StringJoiner numeros = new StringJoiner(", ");
+        Map<String, ResumenProducto> productos = new LinkedHashMap<>();
+
+        for (SalidaDto salida : salidas) {
+            fincas.add((salida.getFincaCode() != null ? salida.getFincaCode() + " - " : "")
+                    + (salida.getFincaName() != null ? salida.getFincaName() : ""));
+            numeros.add(salida.getNumero());
+            if (salida.getItems() == null) continue;
+            for (ItemSalidaDto item : salida.getItems()) {
+                String key = String.join("|", valor(salida.getProductoCode()), valor(salida.getProductoName()),
+                        valor(salida.getUnidadMedida()));
+                ResumenProducto resumen = productos.computeIfAbsent(key,
+                        ignored -> new ResumenProducto(salida.getProductoCode(), salida.getProductoName(), salida.getUnidadMedida()));
+                int cantidad = item.getCantidad() != null ? item.getCantidad() : 0;
+                double precio = item.getPrecio() != null ? item.getPrecio() : 0d;
+                resumen.cantidad += cantidad;
+                resumen.importe += cantidad * precio;
+            }
+        }
+
+        document.add(new Paragraph("VALE CONSOLIDADO DE ENTREGA")
+                .setFont(fontBold).setFontSize(16).setTextAlignment(TextAlignment.CENTER).setMarginBottom(4));
+        document.add(new Paragraph("Documento informativo de impresión; no modifica inventario ni contabilidad.")
+                .setFont(fontNormal).setFontSize(8).setTextAlignment(TextAlignment.CENTER)
+                .setFontColor(TEXT_DARK).setMarginBottom(10));
+
+        Table info = new Table(UnitValue.createPercentArray(new float[]{50, 50}))
+                .setWidth(UnitValue.createPercentValue(100)).setMarginBottom(10);
+        Cell empresaCell = new Cell().setBorder(new SolidBorder(BORDER_COLOR, 1)).setPadding(6);
+        empresaCell.add(crearLineaInfo("Entidad:", empresa.getNombre(), fontNormal));
+        empresaCell.add(crearLineaInfo("Finca:", fincas.toString(), fontNormal));
+        info.addCell(empresaCell);
+        Cell detalleCell = new Cell().setBorder(new SolidBorder(BORDER_COLOR, 1)).setPadding(6);
+        detalleCell.add(crearLineaInfo("Fecha:", fecha.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")), fontNormal));
+        detalleCell.add(crearLineaInfo("Destino:", formatDestino(destino.name()), fontNormal));
+        detalleCell.add(crearLineaInfo("Vales incluidos:", numeros.toString(), fontNormal));
+        info.addCell(detalleCell);
+        document.add(info);
+
+        document.add(new Paragraph("Resumen por producto").setFont(fontBold).setFontSize(11).setMarginBottom(4));
+        Table resumenTable = new Table(UnitValue.createPercentArray(new float[]{10, 47, 13, 15, 15}))
+                .setWidth(UnitValue.createPercentValue(100)).setMarginBottom(14);
+        String[] resumenHeaders = {"Código", "Producto", "U/M", "Cantidad", "Importe"};
+        for (String header : resumenHeaders) {
+            resumenTable.addHeaderCell(celdaEncabezado(header, fontBold));
+        }
+        double importeTotal = 0d;
+        boolean alternar = false;
+        for (ResumenProducto producto : productos.values()) {
+            Color fondo = alternar ? LIGHT_GRAY : ColorConstants.WHITE;
+            alternar = !alternar;
+            resumenTable.addCell(crearCeldaTabla(producto.codigo, fontNormal, TextAlignment.CENTER, fondo));
+            resumenTable.addCell(crearCeldaTabla(producto.nombre, fontNormal, TextAlignment.LEFT, fondo));
+            resumenTable.addCell(crearCeldaTabla(producto.unidadMedida, fontNormal, TextAlignment.CENTER, fondo));
+            resumenTable.addCell(crearCeldaTabla(String.valueOf(producto.cantidad), fontNormal, TextAlignment.CENTER, fondo));
+            resumenTable.addCell(crearCeldaTabla(String.format("$%.2f", producto.importe), fontNormal, TextAlignment.RIGHT, fondo));
+            importeTotal += producto.importe;
+        }
+        document.add(resumenTable);
+
+        document.add(new Paragraph("Detalle por trabajador").setFont(fontBold).setFontSize(11).setMarginBottom(4));
+        Table detalleTable = new Table(UnitValue.createPercentArray(new float[]{6, 26, 25, 10, 10, 11, 12}))
+                .setWidth(UnitValue.createPercentValue(100));
+        String[] detalleHeaders = {"No.", "Trabajador", "Producto", "U/M", "Cantidad", "Vale", "Importe"};
+        for (String header : detalleHeaders) {
+            detalleTable.addHeaderCell(celdaEncabezado(header, fontBold));
+        }
+
+        int consecutivo = 1;
+        alternar = false;
+        for (SalidaDto salida : salidas) {
+            if (salida.getItems() == null) continue;
+            for (ItemSalidaDto item : salida.getItems()) {
+                Color fondo = alternar ? LIGHT_GRAY : ColorConstants.WHITE;
+                alternar = !alternar;
+                int cantidad = item.getCantidad() != null ? item.getCantidad() : 0;
+                double importe = cantidad * (item.getPrecio() != null ? item.getPrecio() : 0d);
+                detalleTable.addCell(crearCeldaTabla(String.valueOf(consecutivo++), fontNormal, TextAlignment.CENTER, fondo));
+                detalleTable.addCell(crearCeldaTabla(item.getTrabajadorNombre() != null
+                        ? item.getTrabajadorNombre() : "Sin trabajador", fontNormal, TextAlignment.LEFT, fondo));
+                detalleTable.addCell(crearCeldaTabla(salida.getProductoName(), fontNormal, TextAlignment.LEFT, fondo));
+                detalleTable.addCell(crearCeldaTabla(salida.getUnidadMedida(), fontNormal, TextAlignment.CENTER, fondo));
+                detalleTable.addCell(crearCeldaTabla(String.valueOf(cantidad), fontNormal, TextAlignment.CENTER, fondo));
+                detalleTable.addCell(crearCeldaTabla(salida.getNumero(), fontNormal, TextAlignment.CENTER, fondo));
+                detalleTable.addCell(crearCeldaTabla(String.format("$%.2f", importe), fontNormal, TextAlignment.RIGHT, fondo));
+            }
+        }
+        document.add(detalleTable);
+        document.add(new Paragraph("Importe total: $" + String.format("%.2f", importeTotal))
+                .setFont(fontBold).setFontSize(9).setTextAlignment(TextAlignment.RIGHT).setMarginTop(6));
+        document.close();
+        return baos.toByteArray();
+    }
+
+    /**
+     * Método legacy para compatibilidad hacia atrás.
+     */
+    public byte[] generarFactura(SalidaDto salida, String suministradorNombre, String suministradorCodigo,
+                                  String suministradorDir, String suministradorMunicipio) throws Exception {
+        ConfiguracionEmpresaDto empresa = ConfiguracionEmpresaDto.builder()
+                .nombre(suministradorNombre)
+                .codigo(suministradorCodigo)
+                .direccion(suministradorDir)
+                .municipio(suministradorMunicipio)
+                .nit("")
+                .build();
+        return generarFactura(salida, empresa);
+    }
+
+    private void generarPaginaFactura(Document document, SalidaDto salida, ConfiguracionEmpresaDto empresa,
+                                       PdfFont fontBold, PdfFont fontNormal) {
+
+        boolean esVale = salida.getTipo() == null || salida.getTipo().name().equals("VALE");
+        String tipoDoc = esVale ? "VALE DE ENTREGA O DEVOLUCIÓN" : "FACTURA";
+        String modeloRef = esVale ? "Modelo SC-2-08" : "Modelo SC-2-12";
+
+        // Referencia al modelo oficial (esquina superior derecha)
+        Paragraph modeloParagraph = new Paragraph(modeloRef)
+                .setFont(fontNormal)
+                .setFontSize(8)
+                .setTextAlignment(TextAlignment.RIGHT)
+                .setFontColor(TEXT_DARK)
+                .setMarginBottom(2);
+        document.add(modeloParagraph);
 
         // Título
         Paragraph titulo = new Paragraph(tipoDoc)
@@ -72,7 +217,7 @@ public class FacturaPdfService {
         String fecha = salida.getFecha() != null
                 ? salida.getFecha().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
                 : "";
-        Paragraph numeroFecha = new Paragraph(salida.getNumero() + "     Fecha: " + fecha)
+        Paragraph numeroFecha = new Paragraph("No.: " + salida.getNumero() + "     Fecha: " + fecha)
                 .setFont(fontNormal)
                 .setFontSize(10)
                 .setTextAlignment(TextAlignment.CENTER)
@@ -84,15 +229,16 @@ public class FacturaPdfService {
                 .setWidth(UnitValue.createPercentValue(100))
                 .setMarginBottom(10);
 
-        // Suministrador
+        // Suministrador (datos obligatorios según Res. 55/2021)
         Cell suministradorCell = new Cell()
                 .setBorder(new SolidBorder(BORDER_COLOR, 1))
                 .setPadding(6);
         suministradorCell.add(new Paragraph("SUMINISTRADOR").setFont(fontBold).setFontSize(9).setMarginBottom(3));
-        suministradorCell.add(crearLineaInfo("Nombre:", "El Coloso S.A.", fontNormal));
-        suministradorCell.add(crearLineaInfo("Código:", "", fontNormal));
-        suministradorCell.add(crearLineaInfo("Dirección:", "Delicias, Puerto Padre, Las Tunas", fontNormal));
-        suministradorCell.add(crearLineaInfo("Cuenta:", "", fontNormal));
+        suministradorCell.add(crearLineaInfo("Nombre:", empresa.getNombre(), fontNormal));
+        suministradorCell.add(crearLineaInfo("Código:", empresa.getCodigo(), fontNormal));
+        suministradorCell.add(crearLineaInfo("NIT:", empresa.getNit(), fontNormal));
+        suministradorCell.add(crearLineaInfo("Dirección:", empresa.getDireccionCompleta(), fontNormal));
+        suministradorCell.add(crearLineaInfo("Cuenta:", empresa.getCuentaBancaria(), fontNormal));
         suministradorCell.add(crearLineaInfo("Finca:", salida.getFincaCode() + " " + salida.getFincaName(), fontNormal));
         headerTable.addCell(suministradorCell);
 
@@ -101,18 +247,21 @@ public class FacturaPdfService {
                 .setBorder(new SolidBorder(BORDER_COLOR, 1))
                 .setPadding(6);
         receptorCell.add(new Paragraph("RECEPTOR").setFont(fontBold).setFontSize(9).setMarginBottom(3));
-        receptorCell.add(crearLineaInfo("Destino:", formatDestino(salida.getDestino().name()), fontNormal));
+        receptorCell.add(crearLineaInfo("Destino:", salida.getDestino() != null ? formatDestino(salida.getDestino().name()) : "", fontNormal));
+        receptorCell.add(crearLineaInfo("Nombre:", "", fontNormal));
+        receptorCell.add(crearLineaInfo("Código:", "", fontNormal));
+        receptorCell.add(crearLineaInfo("Dirección:", "", fontNormal));
         headerTable.addCell(receptorCell);
 
         document.add(headerTable);
 
         // Tabla de items
-        Table itemsTable = new Table(UnitValue.createPercentArray(new float[]{8, 35, 12, 15, 15, 15}))
+        Table itemsTable = new Table(UnitValue.createPercentArray(new float[]{6, 10, 32, 12, 13, 13, 14}))
                 .setWidth(UnitValue.createPercentValue(100))
                 .setMarginBottom(0);
 
-        // Encabezados
-        String[] headers = {"No.", "Producto", "U/M", "Cantidad", "Precio", "Importe"};
+        // Encabezados según modelo oficial
+        String[] headers = {"No.", "Código", "Descripción", "U/M", "Cantidad", "Precio", "Importe"};
         for (String header : headers) {
             itemsTable.addHeaderCell(new Cell()
                     .add(new Paragraph(header).setFont(fontBold).setFontSize(8))
@@ -123,7 +272,7 @@ public class FacturaPdfService {
                     .setPadding(4));
         }
 
-        // Fila única con el producto
+        // Fila del producto
         List<ItemSalidaDto> items = salida.getItems();
         double totalGeneral = 0.0;
         int totalCantidad = 0;
@@ -139,17 +288,18 @@ public class FacturaPdfService {
         Double precioUnitario = items != null && !items.isEmpty() ? items.get(0).getPrecio() : 0.0;
         if (precioUnitario == null) precioUnitario = 0.0;
 
-        String productoDesc = salida.getProductoCode() + " - " + salida.getProductoName();
+        String unidadMedida = salida.getUnidadMedida() != null ? salida.getUnidadMedida() : "UND";
 
         itemsTable.addCell(crearCeldaTabla("1", fontNormal, TextAlignment.CENTER, ColorConstants.WHITE));
-        itemsTable.addCell(crearCeldaTabla(productoDesc, fontNormal, TextAlignment.LEFT, ColorConstants.WHITE));
-        itemsTable.addCell(crearCeldaTabla("UND", fontNormal, TextAlignment.CENTER, ColorConstants.WHITE));
+        itemsTable.addCell(crearCeldaTabla(salida.getProductoCode(), fontNormal, TextAlignment.CENTER, ColorConstants.WHITE));
+        itemsTable.addCell(crearCeldaTabla(salida.getProductoName(), fontNormal, TextAlignment.LEFT, ColorConstants.WHITE));
+        itemsTable.addCell(crearCeldaTabla(unidadMedida, fontNormal, TextAlignment.CENTER, ColorConstants.WHITE));
         itemsTable.addCell(crearCeldaTabla(String.valueOf(totalCantidad), fontNormal, TextAlignment.CENTER, ColorConstants.WHITE));
         itemsTable.addCell(crearCeldaTabla(String.format("$%.2f", precioUnitario), fontNormal, TextAlignment.RIGHT, ColorConstants.WHITE));
         itemsTable.addCell(crearCeldaTabla(String.format("$%.2f", totalGeneral), fontNormal, TextAlignment.RIGHT, ColorConstants.WHITE));
 
-        // Agregar fila de TOTAL directamente a la tabla de items
-        itemsTable.addCell(new Cell(1, 5)
+        // Fila de TOTAL
+        itemsTable.addCell(new Cell(1, 6)
                 .add(new Paragraph("TOTAL").setFont(fontBold).setFontSize(8))
                 .setTextAlignment(TextAlignment.RIGHT)
                 .setBorder(new SolidBorder(BORDER_COLOR, 1))
@@ -162,7 +312,7 @@ public class FacturaPdfService {
 
         document.add(itemsTable);
 
-        // Firmas
+        // Firmas (según modelo oficial: Entregado, Transportador, Recibido, Contabilizado)
         Table firmasTable = new Table(UnitValue.createPercentArray(new float[]{25, 25, 25, 25}))
                 .setWidth(UnitValue.createPercentValue(100))
                 .setMarginTop(0);
@@ -170,7 +320,7 @@ public class FacturaPdfService {
         firmasTable.addCell(crearCeldaFirma("Entregado", fontBold, fontNormal));
         firmasTable.addCell(crearCeldaFirma("Transportador", fontBold, fontNormal));
         firmasTable.addCell(crearCeldaFirma("Recibido", fontBold, fontNormal));
-        firmasTable.addCell(crearCeldaFirma("Anotado", fontBold, fontNormal));
+        firmasTable.addCell(crearCeldaFirma("Contabilizado", fontBold, fontNormal));
 
         document.add(firmasTable);
     }
@@ -188,8 +338,9 @@ public class FacturaPdfService {
         document.add(titulo);
 
         // Subtítulo con info de la salida
-        String tipoDoc = salida.getTipo().name().equals("VALE") ? "Vale" : "Factura";
-        Paragraph subtitulo = new Paragraph(tipoDoc + ": " + salida.getNumero() + " | Producto: " + salida.getProductoName() + " | Destino: " + formatDestino(salida.getDestino().name()))
+        String tipoDoc = (salida.getTipo() == null || salida.getTipo().name().equals("VALE")) ? "Vale" : "Factura";
+        String destinoStr = salida.getDestino() != null ? formatDestino(salida.getDestino().name()) : "";
+        Paragraph subtitulo = new Paragraph(tipoDoc + ": " + salida.getNumero() + " | Producto: " + salida.getProductoName() + " | Destino: " + destinoStr)
                 .setFont(fontNormal)
                 .setFontSize(8)
                 .setTextAlignment(TextAlignment.CENTER)
@@ -279,11 +430,35 @@ public class FacturaPdfService {
 
     private Cell crearCeldaTabla(String texto, PdfFont font, TextAlignment alignment, Color bgColor) {
         return new Cell()
-                .add(new Paragraph(texto).setFont(font).setFontSize(8))
+                .add(new Paragraph(texto != null ? texto : "").setFont(font).setFontSize(8))
                 .setTextAlignment(alignment)
                 .setBorder(new SolidBorder(BORDER_COLOR, 1))
                 .setBackgroundColor(bgColor)
                 .setPadding(3);
+    }
+
+    private Cell celdaEncabezado(String texto, PdfFont font) {
+        return new Cell().add(new Paragraph(texto).setFont(font).setFontSize(8))
+                .setBackgroundColor(HEADER_BG).setFontColor(ColorConstants.WHITE)
+                .setTextAlignment(TextAlignment.CENTER).setBorder(new SolidBorder(BORDER_COLOR, 1)).setPadding(4);
+    }
+
+    private String valor(String texto) {
+        return texto != null ? texto : "";
+    }
+
+    private static class ResumenProducto {
+        private final String codigo;
+        private final String nombre;
+        private final String unidadMedida;
+        private int cantidad;
+        private double importe;
+
+        private ResumenProducto(String codigo, String nombre, String unidadMedida) {
+            this.codigo = codigo;
+            this.nombre = nombre;
+            this.unidadMedida = unidadMedida;
+        }
     }
 
     private Cell crearCeldaFirma(String titulo, PdfFont fontBold, PdfFont fontNormal) {

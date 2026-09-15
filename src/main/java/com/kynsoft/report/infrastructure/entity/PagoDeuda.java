@@ -51,6 +51,25 @@ public class PagoDeuda {
     @Column(name = "fecha")
     private LocalDateTime fecha;
 
+    @Column(name = "numero_recibo", unique = true)
+    private String numeroRecibo;
+
+    @Column(name = "saldo_anterior")
+    private Double saldoAnterior;
+
+    @Column(name = "saldo_nuevo")
+    private Double saldoNuevo;
+
+    @Column(name = "concepto")
+    private String concepto;
+
+    @Column(name = "finca_id")
+    private UUID fincaId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "finca_id", insertable = false, updatable = false)
+    private Finca finca;
+
     public PagoDeuda(PagoDeudaDto dto) {
         this.id = dto.getId();
         this.trabajadorId = dto.getTrabajadorId();
@@ -58,6 +77,11 @@ public class PagoDeuda {
         this.formaPago = dto.getFormaPago();
         this.referenciaBancaria = dto.getReferenciaBancaria();
         this.fecha = dto.getFecha();
+        this.numeroRecibo = dto.getNumeroRecibo();
+        this.saldoAnterior = dto.getSaldoAnterior();
+        this.saldoNuevo = dto.getSaldoNuevo();
+        this.concepto = dto.getConcepto();
+        this.fincaId = dto.getFincaId();
     }
 
     public PagoDeudaDto toAggregate() {
@@ -70,6 +94,12 @@ public class PagoDeuda {
                 .formaPago(formaPago)
                 .referenciaBancaria(referenciaBancaria)
                 .fecha(fecha)
+                .numeroRecibo(numeroRecibo)
+                .saldoAnterior(saldoAnterior)
+                .saldoNuevo(saldoNuevo)
+                .concepto(concepto)
+                .fincaId(fincaId)
+                .fincaName(finca != null ? finca.getName() : (trabajador != null && trabajador.getFinca() != null ? trabajador.getFinca().getName() : null))
                 .build();
     }
 }

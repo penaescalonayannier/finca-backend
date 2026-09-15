@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,6 +18,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
+@Transactional(readOnly = true, transactionManager = "readTransactionManager")
 public interface ProduccionTerminadaReadDataJPARepository 
         extends JpaRepository<ProduccionTerminada, UUID>, JpaSpecificationExecutor<ProduccionTerminada> {
 
@@ -39,6 +41,12 @@ public interface ProduccionTerminadaReadDataJPARepository
     List<ProduccionTerminada> findByTrabajadorEntregaIdAndActivoTrue(UUID trabajadorId);
 
     List<ProduccionTerminada> findByTrabajadorRecibeIdAndActivoTrue(UUID trabajadorId);
+
+    // Por finca
+    List<ProduccionTerminada> findByFincaIdAndActivoTrue(UUID fincaId);
+
+    List<ProduccionTerminada> findByFincaIdAndFechaBetweenAndActivoTrue(
+            UUID fincaId, LocalDateTime fechaInicio, LocalDateTime fechaFin);
 
     // Mantener para uso interno (incluye inactivos)
     List<ProduccionTerminada> findByProductoId(UUID productoId);

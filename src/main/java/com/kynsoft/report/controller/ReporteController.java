@@ -1,9 +1,9 @@
 package com.kynsoft.report.controller;
 
-import com.kynsof.share.core.domain.request.PageableUtil;
-import com.kynsof.share.core.domain.request.SearchRequest;
-import com.kynsof.share.core.domain.response.PaginatedResponse;
-import com.kynsof.share.core.infrastructure.bus.IMediator;
+import com.kynsoft.share.core.domain.request.PageableUtil;
+import com.kynsoft.share.core.domain.request.SearchRequest;
+import com.kynsoft.share.core.domain.response.PaginatedResponse;
+import com.kynsoft.share.core.infrastructure.bus.IMediator;
 import com.kynsoft.report.applications.command.diatrabajo.create.CreateDiaTrabajoCommand;
 import com.kynsoft.report.applications.command.diatrabajo.create.CreateDiaTrabajoMessage;
 import com.kynsoft.report.applications.command.diatrabajo.create.CreateDiaTrabajoRequest;
@@ -344,5 +344,19 @@ public class ReporteController {
             new com.kynsoft.report.applications.query.reporte.trabajadoresFaltantes.GetTrabajadoresFaltantesQuery(year, mes);
         TrabajadoresFaltantesListResponse response = mediator.send(query);
         return ResponseEntity.ok(response);
+    }
+
+    // ==================== REPORTES POR TRABAJADOR (para modal en consolidado) ====================
+    @GetMapping("/por-trabajador/{trabajadorId}")
+    public ResponseEntity<List<ReporteResponse>> getReportesPorTrabajador(
+            @PathVariable UUID trabajadorId,
+            @RequestParam String year,
+            @RequestParam String mes) {
+        List<com.kynsoft.report.domain.dto.ReporteDto> reportes =
+            reporteService.getReportesPorTrabajador(trabajadorId, year, mes);
+        List<ReporteResponse> responses = reportes.stream()
+                .map(ReporteResponse::new)
+                .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(responses);
     }
 }

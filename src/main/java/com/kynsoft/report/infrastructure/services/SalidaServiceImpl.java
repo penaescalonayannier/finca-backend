@@ -1,12 +1,12 @@
 package com.kynsoft.report.infrastructure.services;
 
-import com.kynsof.share.core.domain.exception.BusinessNotFoundException;
-import com.kynsof.share.core.domain.exception.DomainErrorMessage;
-import com.kynsof.share.core.domain.exception.GlobalBusinessException;
-import com.kynsof.share.core.domain.request.FilterCriteria;
-import com.kynsof.share.core.domain.response.ErrorField;
-import com.kynsof.share.core.domain.response.PaginatedResponse;
-import com.kynsof.share.core.infrastructure.specifications.GenericSpecificationsBuilder;
+import com.kynsoft.share.core.domain.exception.BusinessNotFoundException;
+import com.kynsoft.share.core.domain.exception.DomainErrorMessage;
+import com.kynsoft.share.core.domain.exception.GlobalBusinessException;
+import com.kynsoft.share.core.domain.request.FilterCriteria;
+import com.kynsoft.share.core.domain.response.ErrorField;
+import com.kynsoft.share.core.domain.response.PaginatedResponse;
+import com.kynsoft.share.core.infrastructure.specifications.GenericSpecificationsBuilder;
 import com.kynsoft.report.applications.query.responseObject.SalidaResponse;
 import com.kynsoft.report.domain.dto.DeudaTrabajadorDetalleDto;
 import com.kynsoft.report.domain.dto.DestinoSalida;
@@ -18,18 +18,26 @@ import com.kynsoft.report.domain.dto.TipoSalida;
 import com.kynsoft.report.domain.services.IDeudaTrabajadorDetalleService;
 import com.kynsoft.report.domain.services.IDeudaTrabajadorService;
 import com.kynsoft.report.domain.services.IMovimientoStockService;
+import com.kynsoft.report.domain.services.INumeracionService;
+import com.kynsoft.report.domain.dto.TipoDocumento;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import com.kynsoft.report.domain.services.ISalidaService;
+import com.kynsoft.report.infrastructure.entity.AlmacenFincaProducto;
 import com.kynsoft.report.infrastructure.entity.FincaProducto;
 import com.kynsoft.report.infrastructure.entity.ItemSalida;
 import com.kynsoft.report.infrastructure.entity.Salida;
+import com.kynsoft.report.infrastructure.repository.command.AlmacenFincaProductoWriteDataJPARepository;
 import com.kynsoft.report.infrastructure.repository.command.ItemSalidaWriteDataJPARepository;
 import com.kynsoft.report.infrastructure.repository.command.SalidaWriteDataJPARepository;
 import com.kynsoft.report.infrastructure.repository.command.FincaProductoWriteDataJPARepository;
+import com.kynsoft.report.infrastructure.repository.query.AlmacenFincaProductoReadDataJPARepository;
 import com.kynsoft.report.infrastructure.repository.query.FincaProductoReadDataJPARepository;
 import com.kynsoft.report.infrastructure.repository.query.ItemSalidaReadDataJPARepository;
 import com.kynsoft.report.infrastructure.repository.query.SalidaReadDataJPARepository;
+import com.kynsoft.report.infrastructure.security.TenantSpecification;
+import com.kynsoft.report.infrastructure.security.TenantContext;
 import org.hibernate.Hibernate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -50,9 +58,12 @@ public class SalidaServiceImpl implements ISalidaService {
     private final ItemSalidaReadDataJPARepository itemRepositoryQuery;
     private final FincaProductoReadDataJPARepository fincaProductoReadRepository;
     private final FincaProductoWriteDataJPARepository fincaProductoWriteRepository;
+    private final AlmacenFincaProductoReadDataJPARepository almacenFincaProductoReadRepository;
+    private final AlmacenFincaProductoWriteDataJPARepository almacenFincaProductoWriteRepository;
     private final IDeudaTrabajadorService deudaTrabajadorService;
     private final IDeudaTrabajadorDetalleService deudaDetalleService;
     private final IMovimientoStockService movimientoStockService;
+    private final INumeracionService numeracionService;
 
     public SalidaServiceImpl(
             SalidaWriteDataJPARepository repositoryCommand,
@@ -61,18 +72,24 @@ public class SalidaServiceImpl implements ISalidaService {
             ItemSalidaReadDataJPARepository itemRepositoryQuery,
             FincaProductoReadDataJPARepository fincaProductoReadRepository,
             FincaProductoWriteDataJPARepository fincaProductoWriteRepository,
+            AlmacenFincaProductoReadDataJPARepository almacenFincaProductoReadRepository,
+            AlmacenFincaProductoWriteDataJPARepository almacenFincaProductoWriteRepository,
             IDeudaTrabajadorService deudaTrabajadorService,
             IDeudaTrabajadorDetalleService deudaDetalleService,
-            IMovimientoStockService movimientoStockService) {
+            IMovimientoStockService movimientoStockService,
+            INumeracionService numeracionService) {
         this.repositoryCommand = repositoryCommand;
         this.repositoryQuery = repositoryQuery;
         this.itemRepositoryCommand = itemRepositoryCommand;
         this.itemRepositoryQuery = itemRepositoryQuery;
         this.fincaProductoReadRepository = fincaProductoReadRepository;
         this.fincaProductoWriteRepository = fincaProductoWriteRepository;
+        this.almacenFincaProductoReadRepository = almacenFincaProductoReadRepository;
+        this.almacenFincaProductoWriteRepository = almacenFincaProductoWriteRepository;
         this.deudaTrabajadorService = deudaTrabajadorService;
         this.deudaDetalleService = deudaDetalleService;
         this.movimientoStockService = movimientoStockService;
+        this.numeracionService = numeracionService;
     }
 
     @Override
@@ -100,8 +117,10 @@ public class SalidaServiceImpl implements ISalidaService {
         TipoSalida tipoFinal = determinarTipoSegunDestino(dto.getDestino());
         dto.setTipo(tipoFinal);
 
-        // Generar número automáticamente
-        dto.setNumero(generarNumero(tipoFinal));
+        // Generar número automáticamente usando el servicio de numeración
+        UUID fincaId = fincaProducto.getFinca().getId();
+        TipoDocumento tipoDoc = TipoDocumento.fromTipoSalida(tipoFinal);
+        dto.setNumero(numeracionService.generarSiguienteNumero(fincaId, tipoDoc));
 
         // Crear la salida
         Salida salida = new Salida(dto);
@@ -156,12 +175,23 @@ public class SalidaServiceImpl implements ISalidaService {
         fincaProducto.setStock(stockNuevo);
         fincaProductoWriteRepository.save(fincaProducto);
 
-        // Registrar movimiento de stock
+        // Si viene de un almacén, también rebajar el stock del AlmacenFincaProducto
+        if (dto.getAlmacenFincaProductoId() != null) {
+            AlmacenFincaProducto afp = almacenFincaProductoReadRepository.findById(dto.getAlmacenFincaProductoId())
+                    .orElseThrow(() -> new BusinessNotFoundException(new GlobalBusinessException(
+                            DomainErrorMessage.BUSINESS_NOT_FOUND,
+                            new ErrorField("almacenFincaProductoId", "No se encontró el producto en el almacén."))));
+            afp.setStock(Math.max(0, afp.getStock() - cantidadTotal));
+            almacenFincaProductoWriteRepository.save(afp);
+        }
+
+        // Registrar movimiento de stock con el tipo correcto según destino
+        TipoMovimientoStock tipoMovimiento = determinarTipoMovimientoSegunDestino(dto.getDestino());
         movimientoStockService.registrarMovimiento(
                 fincaProducto.getId(),
                 fincaProducto.getFinca().getId(),
                 fincaProducto.getProducto().getId(),
-                TipoMovimientoStock.SALIDA_VENTA,
+                tipoMovimiento,
                 -cantidadTotal,
                 stockAnterior,
                 stockNuevo,
@@ -275,7 +305,9 @@ public class SalidaServiceImpl implements ISalidaService {
         // Registrar movimiento de stock solo si hay cambio
         Integer diferencia = stockNuevo - stockAnterior;
         if (diferencia != 0) {
-            TipoMovimientoStock tipoMov = diferencia > 0 ? TipoMovimientoStock.DEVOLUCION : TipoMovimientoStock.SALIDA_VENTA;
+            TipoMovimientoStock tipoMov = diferencia > 0
+                    ? TipoMovimientoStock.DEVOLUCION
+                    : determinarTipoMovimientoSegunDestino(dto.getDestino());
             movimientoStockService.registrarMovimiento(
                     fincaProducto.getId(),
                     fincaProducto.getFinca().getId(),
@@ -380,9 +412,12 @@ public class SalidaServiceImpl implements ISalidaService {
         // Construir especificación base con filtros del usuario
         GenericSpecificationsBuilder<Salida> specifications = new GenericSpecificationsBuilder<>(filterCriteria);
 
-        // Agregar filtro de activos por defecto
+        // Agregar filtro de activos por defecto y filtro de tenant
         org.springframework.data.jpa.domain.Specification<Salida> activoSpec = (root, query, cb) -> cb.equal(root.get("activo"), true);
-        org.springframework.data.jpa.domain.Specification<Salida> combinedSpec = org.springframework.data.jpa.domain.Specification.where(specifications).and(activoSpec);
+        org.springframework.data.jpa.domain.Specification<Salida> combinedSpec = org.springframework.data.jpa.domain.Specification
+                .where(specifications)
+                .and(activoSpec)
+                .and(TenantSpecification.byFincaViaFincaProducto());
 
         Page<Salida> data = repositoryQuery.findAll(combinedSpec, pageable);
 
@@ -415,7 +450,31 @@ public class SalidaServiceImpl implements ISalidaService {
     }
 
     @Override
+    public List<SalidaDto> findValesActivosPorFechaYDestino(LocalDate fecha, DestinoSalida destino) {
+        LocalDateTime inicio = fecha.atStartOfDay();
+        LocalDateTime fin = fecha.plusDays(1).atStartOfDay();
+        UUID fincaEfectiva = TenantContext.shouldFilter() ? TenantContext.getEffectiveFincaId() : null;
+
+        return repositoryQuery.findActivasPorTipoDestinoYFecha(TipoSalida.VALE, destino, inicio, fin)
+                .stream()
+                .filter(salida -> fincaEfectiva == null
+                        || (salida.getFincaProducto() != null
+                        && salida.getFincaProducto().getFinca() != null
+                        && fincaEfectiva.equals(salida.getFincaProducto().getFinca().getId())))
+                .map(salida -> {
+                    SalidaDto dto = salida.toAggregate();
+                    dto.setItems(salida.getItems().stream()
+                            .map(ItemSalida::toAggregate)
+                            .collect(Collectors.toList()));
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Deprecated
     public String generarNumero(TipoSalida tipo) {
+        // Método legacy - usar numeracionService.generarSiguienteNumero() con fincaId
         String prefix = tipo == TipoSalida.VALE ? "VALE-" : "FAC-";
         Integer maxNum = repositoryQuery.findMaxNumeroByPrefix(prefix);
         int nextNum = (maxNum != null ? maxNum : 0) + 1;
@@ -442,6 +501,18 @@ public class SalidaServiceImpl implements ISalidaService {
         return switch (destino) {
             case VENTA_ESTADO, POBLACION -> TipoSalida.FACTURA;
             default -> TipoSalida.VALE;
+        };
+    }
+
+    /**
+     * Determina el tipo de movimiento de stock según el destino de la salida.
+     * Esto permite que el sistema de contabilidad automática aplique el precio correcto.
+     */
+    private TipoMovimientoStock determinarTipoMovimientoSegunDestino(DestinoSalida destino) {
+        return switch (destino) {
+            case TRABAJADORES -> TipoMovimientoStock.SALIDA_AUTOCONSUMO;
+            case COMEDOR -> TipoMovimientoStock.SALIDA_COMEDOR;
+            default -> TipoMovimientoStock.SALIDA_VENTA;
         };
     }
 }

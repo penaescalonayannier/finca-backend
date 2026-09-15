@@ -1,10 +1,10 @@
 package com.kynsoft.report.applications.command.producto.create;
 
-import com.kynsof.share.core.domain.bus.command.ICommandHandler;
-import com.kynsof.share.core.domain.exception.BusinessNotFoundException;
-import com.kynsof.share.core.domain.exception.DomainErrorMessage;
-import com.kynsof.share.core.domain.exception.GlobalBusinessException;
-import com.kynsof.share.core.domain.response.ErrorField;
+import com.kynsoft.share.core.domain.bus.command.ICommandHandler;
+import com.kynsoft.share.core.domain.exception.BusinessNotFoundException;
+import com.kynsoft.share.core.domain.exception.DomainErrorMessage;
+import com.kynsoft.share.core.domain.exception.GlobalBusinessException;
+import com.kynsoft.share.core.domain.response.ErrorField;
 import com.kynsoft.report.domain.dto.ProductoDto;
 import com.kynsoft.report.domain.services.IProductoService;
 import lombok.AllArgsConstructor;

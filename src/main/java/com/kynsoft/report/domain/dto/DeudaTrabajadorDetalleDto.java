@@ -34,4 +34,5 @@ public class DeudaTrabajadorDetalleDto {
     private TipoMovimiento tipoMovimiento;
     private FormaPago formaPago;
     private String referenciaBancaria;
+    private String observaciones;
 }

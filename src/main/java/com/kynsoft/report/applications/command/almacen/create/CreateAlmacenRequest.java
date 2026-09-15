@@ -9,6 +9,6 @@ import java.util.UUID;
 @Setter
 public class CreateAlmacenRequest {
     private String nombre;
-    private String inventario;
+    private String descripcion;
     private UUID fincaId;
 }

@@ -23,4 +23,10 @@ public class PagoDeudaDto {
     private FormaPago formaPago;
     private String referenciaBancaria;
     private LocalDateTime fecha;
+    private String numeroRecibo;
+    private Double saldoAnterior;
+    private Double saldoNuevo;
+    private String concepto;
+    private UUID fincaId;
+    private String fincaName;
 }

@@ -1,6 +1,6 @@
 package com.kynsoft.report.infrastructure.services;
 
-import com.kynsof.share.core.domain.exception.BusinessNotFoundException;
+import com.kynsoft.share.core.domain.exception.BusinessNotFoundException;
 import com.kynsoft.report.domain.services.IMovimientoStockService;
 import com.kynsoft.report.infrastructure.entity.Finca;
 import com.kynsoft.report.infrastructure.entity.FincaProducto;
@@ -257,6 +257,171 @@ class FincaProductoServiceImplTest {
 
             // Assert
             assertEquals(150, stock);
+        }
+    }
+
+    @Nested
+    @DisplayName("getEstadoStock() Tests - Entity Level")
+    class EstadoStockTests {
+
+        @Test
+        @DisplayName("Estado CRITICO cuando stock es 0")
+        void estadoCriticoCuandoStockEsCero() {
+            // Arrange
+            fincaProducto.setStock(0);
+            fincaProducto.setStockMinimo(10);
+
+            // Act & Assert
+            assertEquals(com.kynsoft.report.domain.dto.EstadoStock.CRITICO, fincaProducto.getEstadoStock());
+        }
+
+        @Test
+        @DisplayName("Estado CRITICO cuando stock es null")
+        void estadoCriticoCuandoStockEsNull() {
+            // Arrange
+            fincaProducto.setStock(null);
+
+            // Act & Assert
+            assertEquals(com.kynsoft.report.domain.dto.EstadoStock.CRITICO, fincaProducto.getEstadoStock());
+        }
+
+        @Test
+        @DisplayName("Estado BAJO cuando stock < stockMinimo")
+        void estadoBajoCuandoStockMenorQueMinimo() {
+            // Arrange
+            fincaProducto.setStock(5);
+            fincaProducto.setStockMinimo(10);
+
+            // Act & Assert
+            assertEquals(com.kynsoft.report.domain.dto.EstadoStock.BAJO, fincaProducto.getEstadoStock());
+        }
+
+        @Test
+        @DisplayName("Estado NORMAL cuando stock está entre mínimo y máximo")
+        void estadoNormalCuandoStockEnRango() {
+            // Arrange
+            fincaProducto.setStock(50);
+            fincaProducto.setStockMinimo(10);
+            fincaProducto.setStockMaximo(100);
+
+            // Act & Assert
+            assertEquals(com.kynsoft.report.domain.dto.EstadoStock.NORMAL, fincaProducto.getEstadoStock());
+        }
+
+        @Test
+        @DisplayName("Estado EXCESO cuando stock > stockMaximo")
+        void estadoExcesoCuandoStockMayorQueMaximo() {
+            // Arrange
+            fincaProducto.setStock(150);
+            fincaProducto.setStockMinimo(10);
+            fincaProducto.setStockMaximo(100);
+
+            // Act & Assert
+            assertEquals(com.kynsoft.report.domain.dto.EstadoStock.EXCESO, fincaProducto.getEstadoStock());
+        }
+
+        @Test
+        @DisplayName("Estado NORMAL cuando stockMinimo es 0 y hay stock")
+        void estadoNormalCuandoStockMinimoEsCero() {
+            // Arrange
+            fincaProducto.setStock(50);
+            fincaProducto.setStockMinimo(0);
+            fincaProducto.setStockMaximo(null);
+
+            // Act & Assert
+            assertEquals(com.kynsoft.report.domain.dto.EstadoStock.NORMAL, fincaProducto.getEstadoStock());
+        }
+    }
+
+    @Nested
+    @DisplayName("actualizarStock() Tests")
+    class ActualizarStockTests {
+
+        @Test
+        @DisplayName("Debe actualizar stock con valor positivo (entrada)")
+        void debeActualizarStockConEntrada() {
+            // Arrange
+            fincaProducto.setStock(100);
+            when(repositoryQuery.findByFincaIdAndProductoId(fincaId, productoId))
+                    .thenReturn(Optional.of(fincaProducto));
+            when(repositoryCommand.save(any(FincaProducto.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // Act
+            fincaProductoService.actualizarStock(fincaId, productoId, 50);
+
+            // Assert
+            verify(repositoryCommand).save(argThat(fp -> fp.getStock() == 50));
+        }
+
+        @Test
+        @DisplayName("Debe rechazar producto no asignado al actualizar stock")
+        void debeRechazarProductoNoAsignadoAlActualizarStock() {
+            // Arrange
+            when(repositoryQuery.findByFincaIdAndProductoId(fincaId, productoId))
+                    .thenReturn(Optional.empty());
+
+            // Act & Assert
+            assertThrows(
+                    BusinessNotFoundException.class,
+                    () -> fincaProductoService.actualizarStock(fincaId, productoId, 50)
+            );
+        }
+
+        @Test
+        @DisplayName("Debe permitir stock cero")
+        void debePermitirStockCero() {
+            // Arrange
+            fincaProducto.setStock(100);
+            when(repositoryQuery.findByFincaIdAndProductoId(fincaId, productoId))
+                    .thenReturn(Optional.of(fincaProducto));
+            when(repositoryCommand.save(any(FincaProducto.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // Act
+            fincaProductoService.actualizarStock(fincaId, productoId, 0);
+
+            // Assert
+            verify(repositoryCommand).save(argThat(fp -> fp.getStock() == 0));
+        }
+    }
+
+    @Nested
+    @DisplayName("toAggregate() Conversion Tests")
+    class ToAggregateTests {
+
+        @Test
+        @DisplayName("Debe convertir entidad a DTO correctamente")
+        void debeConvertirEntidadADtoCorrectamente() {
+            // Arrange
+            fincaProducto.setStock(75);
+            fincaProducto.setStockMinimo(20);
+            fincaProducto.setStockMaximo(200);
+            fincaProducto.setActivo(true);
+
+            // Act
+            var dto = fincaProducto.toAggregate();
+
+            // Assert
+            assertEquals(fincaProducto.getId(), dto.getId());
+            assertEquals(fincaId, dto.getFincaId());
+            assertEquals(productoId, dto.getProductoId());
+            assertEquals(75, dto.getStock());
+            assertEquals(20, dto.getStockMinimo());
+            assertEquals(200, dto.getStockMaximo());
+            assertTrue(dto.getActivo());
+            assertEquals(com.kynsoft.report.domain.dto.EstadoStock.NORMAL, dto.getEstadoStock());
+        }
+
+        @Test
+        @DisplayName("Debe manejar finca null en conversión")
+        void debeManejarFincaNullEnConversion() {
+            // Arrange
+            fincaProducto.setFinca(null);
+
+            // Act
+            var dto = fincaProducto.toAggregate();
+
+            // Assert
+            assertNull(dto.getFincaId());
         }
     }
 }

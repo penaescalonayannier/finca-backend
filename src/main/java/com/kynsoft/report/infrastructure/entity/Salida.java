@@ -96,6 +96,8 @@ public class Salida {
                 .fincaName(fincaProducto != null && fincaProducto.getFinca() != null ? fincaProducto.getFinca().getName() : null)
                 .productoCode(fincaProducto != null && fincaProducto.getProducto() != null ? fincaProducto.getProducto().getCode() : null)
                 .productoName(fincaProducto != null && fincaProducto.getProducto() != null ? fincaProducto.getProducto().getName() : null)
+                .unidadMedida(fincaProducto != null && fincaProducto.getProducto() != null && fincaProducto.getProducto().getUnidadMedida() != null
+                        ? fincaProducto.getProducto().getUnidadMedida().name() : "UND")
                 .stockActual(fincaProducto != null ? fincaProducto.getStock() : null)
                 .fecha(fecha)
                 .observaciones(observaciones)

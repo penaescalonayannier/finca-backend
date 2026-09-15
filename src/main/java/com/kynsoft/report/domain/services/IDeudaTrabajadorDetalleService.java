@@ -1,7 +1,7 @@
 package com.kynsoft.report.domain.services;
 
-import com.kynsof.share.core.domain.request.FilterCriteria;
-import com.kynsof.share.core.domain.response.PaginatedResponse;
+import com.kynsoft.share.core.domain.request.FilterCriteria;
+import com.kynsoft.share.core.domain.response.PaginatedResponse;
 import com.kynsoft.report.domain.dto.DeudaTrabajadorDetalleDto;
 import org.springframework.data.domain.Pageable;
 
@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.UUID;
 
 public interface IDeudaTrabajadorDetalleService {
+
+    UUID create(DeudaTrabajadorDetalleDto dto);
 
     void registrar(DeudaTrabajadorDetalleDto dto);
 

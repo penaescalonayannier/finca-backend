@@ -9,5 +9,7 @@ public interface IPagoDeudaService {
 
     UUID registrarPago(PagoDeudaDto dto);
 
+    PagoDeudaDto findById(UUID id);
+
     List<PagoDeudaDto> findByTrabajadorId(UUID trabajadorId);
 }

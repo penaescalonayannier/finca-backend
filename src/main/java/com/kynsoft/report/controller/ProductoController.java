@@ -1,9 +1,9 @@
 package com.kynsoft.report.controller;
 
-import com.kynsof.share.core.domain.request.PageableUtil;
-import com.kynsof.share.core.domain.request.SearchRequest;
-import com.kynsof.share.core.domain.response.PaginatedResponse;
-import com.kynsof.share.core.infrastructure.bus.IMediator;
+import com.kynsoft.share.core.domain.request.PageableUtil;
+import com.kynsoft.share.core.domain.request.SearchRequest;
+import com.kynsoft.share.core.domain.response.PaginatedResponse;
+import com.kynsoft.share.core.infrastructure.bus.IMediator;
 import com.kynsoft.report.applications.command.producto.create.CreateProductoCommand;
 import com.kynsoft.report.applications.command.producto.create.CreateProductoMessage;
 import com.kynsoft.report.applications.command.producto.create.CreateProductoRequest;

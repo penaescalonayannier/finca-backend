@@ -1,6 +1,6 @@
 package com.kynsoft.report.applications.command.producto.importexcel;
 
-import com.kynsof.share.core.domain.bus.command.ICommandHandler;
+import com.kynsoft.share.core.domain.bus.command.ICommandHandler;
 import com.kynsoft.report.domain.dto.ProductoDto;
 import com.kynsoft.report.domain.dto.UnidadMedida;
 import com.kynsoft.report.domain.services.IProductoService;

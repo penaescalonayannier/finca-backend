@@ -1,6 +1,6 @@
 package com.kynsoft.report.applications.query.almacen.getById;
 
-import com.kynsof.share.core.domain.bus.query.IQueryHandler;
+import com.kynsoft.share.core.domain.bus.query.IQueryHandler;
 import com.kynsoft.report.applications.query.responseObject.AlmacenResponse;
 import com.kynsoft.report.domain.dto.AlmacenDto;
 import com.kynsoft.report.domain.services.IAlmacenService;

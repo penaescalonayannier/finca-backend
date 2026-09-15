@@ -1,7 +1,7 @@
 package com.kynsoft.report.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kynsof.share.core.infrastructure.bus.IMediator;
+import com.kynsoft.share.core.infrastructure.bus.IMediator;
 import com.kynsoft.report.domain.services.IProduccionTerminadaService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

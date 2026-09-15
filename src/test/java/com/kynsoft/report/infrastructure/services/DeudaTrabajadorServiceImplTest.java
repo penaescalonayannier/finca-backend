@@ -1,6 +1,6 @@
 package com.kynsoft.report.infrastructure.services;
 
-import com.kynsof.share.core.domain.exception.BusinessNotFoundException;
+import com.kynsoft.share.core.domain.exception.BusinessNotFoundException;
 import com.kynsoft.report.domain.dto.DeudaTrabajadorDto;
 import com.kynsoft.report.domain.dto.FormaPago;
 import com.kynsoft.report.domain.dto.MovimientoDeudaResult;

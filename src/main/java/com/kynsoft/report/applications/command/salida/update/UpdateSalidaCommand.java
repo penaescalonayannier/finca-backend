@@ -1,7 +1,7 @@
 package com.kynsoft.report.applications.command.salida.update;
 
-import com.kynsof.share.core.domain.bus.command.ICommand;
-import com.kynsof.share.core.domain.bus.command.ICommandMessage;
+import com.kynsoft.share.core.domain.bus.command.ICommand;
+import com.kynsoft.share.core.domain.bus.command.ICommandMessage;
 import com.kynsoft.report.domain.dto.ItemSalidaDto;
 import com.kynsoft.report.domain.dto.TipoSalida;
 import lombok.Getter;

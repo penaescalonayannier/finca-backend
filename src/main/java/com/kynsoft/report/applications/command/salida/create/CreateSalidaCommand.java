@@ -1,7 +1,7 @@
 package com.kynsoft.report.applications.command.salida.create;
 
-import com.kynsof.share.core.domain.bus.command.ICommand;
-import com.kynsof.share.core.domain.bus.command.ICommandMessage;
+import com.kynsoft.share.core.domain.bus.command.ICommand;
+import com.kynsoft.share.core.domain.bus.command.ICommandMessage;
 import com.kynsoft.report.domain.dto.DestinoSalida;
 import com.kynsoft.report.domain.dto.ItemSalidaDto;
 import lombok.Getter;
@@ -18,13 +18,15 @@ public class CreateSalidaCommand implements ICommand {
     // RN-09: tipo se determina automáticamente según destino en el servicio
     private DestinoSalida destino;
     private UUID fincaProductoId;
+    private UUID almacenFincaProductoId; // Optional: when creating from almacen view
     private String observaciones;
     private List<ItemSalidaDto> items;
 
-    public CreateSalidaCommand(DestinoSalida destino, UUID fincaProductoId, String observaciones, List<ItemSalidaDto> items) {
+    public CreateSalidaCommand(DestinoSalida destino, UUID fincaProductoId, UUID almacenFincaProductoId, String observaciones, List<ItemSalidaDto> items) {
         this.id = UUID.randomUUID();
         this.destino = destino;
         this.fincaProductoId = fincaProductoId;
+        this.almacenFincaProductoId = almacenFincaProductoId;
         this.observaciones = observaciones;
         this.items = items;
     }
@@ -33,6 +35,7 @@ public class CreateSalidaCommand implements ICommand {
         return new CreateSalidaCommand(
                 request.getDestino(),
                 request.getFincaProductoId(),
+                request.getAlmacenFincaProductoId(),
                 request.getObservaciones(),
                 request.getItems()
         );

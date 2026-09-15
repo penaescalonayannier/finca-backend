@@ -1,10 +1,12 @@
 package com.kynsoft.report.applications.command.almacen.create;
 
-import com.kynsof.share.core.domain.bus.command.ICommandHandler;
+import com.kynsoft.share.core.domain.bus.command.ICommandHandler;
 import com.kynsoft.report.domain.dto.AlmacenDto;
 import com.kynsoft.report.domain.services.IAlmacenService;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
+
+import java.util.UUID;
 
 @Component
 @AllArgsConstructor
@@ -14,12 +16,15 @@ public class CreateAlmacenCommandHandler implements ICommandHandler<CreateAlmace
 
     @Override
     public void handle(CreateAlmacenCommand command) {
-        serviceImpl.create(AlmacenDto.builder()
-                .id(command.getId())
+        UUID id = serviceImpl.create(AlmacenDto.builder()
                 .nombre(command.getNombre())
-                .inventario(command.getInventario())
+                .descripcion(command.getDescripcion())
                 .fincaId(command.getFincaId())
-                .activo(true)
                 .build());
+        command.setId(id);
+
+        // Get the generated inventario code
+        AlmacenDto created = serviceImpl.findById(id);
+        command.setInventario(created.getInventario());
     }
 }

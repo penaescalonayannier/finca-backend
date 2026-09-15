@@ -1,9 +1,11 @@
 package com.kynsoft.report.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kynsof.share.core.infrastructure.bus.IMediator;
+import com.kynsoft.share.core.infrastructure.bus.IMediator;
 import com.kynsoft.report.domain.services.IDeudaTrabajadorDetalleService;
 import com.kynsoft.report.domain.services.IDeudaTrabajadorService;
+import com.kynsoft.report.domain.services.IPagoDeudaService;
+import com.kynsoft.report.infrastructure.services.ReciboPdfService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -39,6 +41,12 @@ class DeudaTrabajadorControllerIntegrationTest {
 
     @MockBean
     private IDeudaTrabajadorDetalleService detalleService;
+
+    @MockBean
+    private IPagoDeudaService pagoDeudaService;
+
+    @MockBean
+    private ReciboPdfService reciboPdfService;
 
     private UUID trabajadorId;
     private UUID deudaId;

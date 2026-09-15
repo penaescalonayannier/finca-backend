@@ -22,13 +22,49 @@ public class Reporte {
     @Column(name = "id")
     private UUID id;
 
-    @Column(name = "bloque", nullable = false, length = 50)
+    /**
+     * Tipo de reporte (nomenclador). Determina centro de costo y subclasificación.
+     */
+    @Column(name = "tipo_reporte_id")
+    private UUID tipoReporteId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tipo_reporte_id", insertable = false, updatable = false)
+    private TipoReporte tipoReporte;
+
+    /**
+     * Tipo de cultivo (nomenclador). Determina si requiere bloque/campo.
+     */
+    @Column(name = "tipo_cultivo_id")
+    private UUID tipoCultivoId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tipo_cultivo_id", insertable = false, updatable = false)
+    private TipoCultivo tipoCultivo;
+
+    /**
+     * Tipo de animal (nomenclador). Para reportes de vaquería.
+     */
+    @Column(name = "tipo_animal_id")
+    private UUID tipoAnimalId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tipo_animal_id", insertable = false, updatable = false)
+    private TipoAnimal tipoAnimal;
+
+    /**
+     * Bloque - ahora nullable (solo requerido si tipoCultivo.requiereCampo = true)
+     */
+    @Column(name = "bloque", nullable = true, length = 50)
     private String bloque;
 
-    @Column(name = "campo", nullable = false, length = 50)
+    /**
+     * Campo - ahora nullable (solo requerido si tipoCultivo.requiereCampo = true)
+     */
+    @Column(name = "campo", nullable = true, length = 50)
     private String campo;
 
-    @Column(name = "area", nullable = false, length = 50)
+    @Column(name = "area", nullable = true, length = 50)
     private String area;
 
     @Column(name = "norma", nullable = false, length = 50)
@@ -61,6 +97,9 @@ public class Reporte {
 
     public Reporte(ReporteDto dto) {
         this.id = dto.getId();
+        this.tipoReporteId = dto.getTipoReporteId();
+        this.tipoCultivoId = dto.getTipoCultivoId();
+        this.tipoAnimalId = dto.getTipoAnimalId();
         this.bloque = dto.getBloque();
         this.campo = dto.getCampo();
         this.area = dto.getArea();
@@ -77,6 +116,20 @@ public class Reporte {
     public ReporteDto toAggregate() {
         return ReporteDto.builder()
                 .id(id)
+                // Tipo de reporte
+                .tipoReporteId(tipoReporteId)
+                .tipoReporteCodigo(tipoReporte != null ? tipoReporte.getCodigo() : null)
+                .tipoReporteNombre(tipoReporte != null ? tipoReporte.getNombre() : null)
+                .tipoSubclasificacion(tipoReporte != null ? tipoReporte.getTipoSubclasificacion() : null)
+                .tipoCultivoCategoriaFiltro(tipoReporte != null ? tipoReporte.getTipoCultivoCategoriaFiltro() : null)
+                // Tipo de cultivo
+                .tipoCultivoId(tipoCultivoId)
+                .tipoCultivoNombre(tipoCultivo != null ? tipoCultivo.getNombre() : null)
+                .tipoCultivoRequiereCampo(tipoCultivo != null ? tipoCultivo.getRequiereCampo() : null)
+                // Tipo de animal
+                .tipoAnimalId(tipoAnimalId)
+                .tipoAnimalNombre(tipoAnimal != null ? tipoAnimal.getNombre() : null)
+                // Bloque y campo
                 .bloque(bloque)
                 .campo(campo)
                 .area(area)

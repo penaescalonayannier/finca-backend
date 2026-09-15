@@ -34,7 +34,7 @@ public class ItemSalida {
     @JoinColumn(name = "salida_id", insertable = false, updatable = false)
     private Salida salida;
 
-    @Column(name = "trabajador_id", nullable = false)
+    @Column(name = "trabajador_id", nullable = true)
     private UUID trabajadorId;
 
     @ManyToOne(fetch = FetchType.LAZY)

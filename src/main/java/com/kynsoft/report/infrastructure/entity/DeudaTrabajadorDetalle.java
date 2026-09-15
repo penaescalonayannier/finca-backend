@@ -88,6 +88,9 @@ public class DeudaTrabajadorDetalle {
     @Column(name = "referencia_bancaria")
     private String referenciaBancaria;
 
+    @Column(name = "observaciones", length = 500)
+    private String observaciones;
+
     public DeudaTrabajadorDetalle(DeudaTrabajadorDetalleDto dto) {
         this.id = dto.getId();
         this.trabajadorId = dto.getTrabajadorId();
@@ -106,6 +109,7 @@ public class DeudaTrabajadorDetalle {
         this.tipoMovimiento = dto.getTipoMovimiento() != null ? dto.getTipoMovimiento() : TipoMovimiento.COMPRA;
         this.formaPago = dto.getFormaPago();
         this.referenciaBancaria = dto.getReferenciaBancaria();
+        this.observaciones = dto.getObservaciones();
     }
 
     public DeudaTrabajadorDetalleDto toAggregate() {
@@ -129,6 +133,7 @@ public class DeudaTrabajadorDetalle {
                 .tipoMovimiento(tipoMovimiento)
                 .formaPago(formaPago)
                 .referenciaBancaria(referenciaBancaria)
+                .observaciones(observaciones)
                 .build();
     }
 }

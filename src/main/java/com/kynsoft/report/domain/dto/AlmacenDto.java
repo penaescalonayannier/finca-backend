@@ -17,10 +17,14 @@ import java.util.UUID;
 public class AlmacenDto {
     private UUID id;
     private String nombre;
+    private String descripcion;
     private String inventario;
+    private Boolean esPrincipal;
     private Boolean activo;
     private UUID fincaId;
     private String fincaCode;
     private String fincaName;
     private List<FincaProductoDto> productos;
+    private Long cantidadProductos;
+    private Long stockTotal;
 }

@@ -1,7 +1,7 @@
 package com.kynsoft.report.domain.services;
 
-import com.kynsof.share.core.domain.request.FilterCriteria;
-import com.kynsof.share.core.domain.response.PaginatedResponse;
+import com.kynsoft.share.core.domain.request.FilterCriteria;
+import com.kynsoft.share.core.domain.response.PaginatedResponse;
 import com.kynsoft.report.domain.dto.AlmacenDto;
 import org.springframework.data.domain.Pageable;
 
@@ -10,11 +10,15 @@ import java.util.UUID;
 
 public interface IAlmacenService {
 
-    void create(AlmacenDto object);
+    UUID create(AlmacenDto object);
 
     void update(AlmacenDto object);
 
     void delete(UUID id);
+
+    void reactivar(UUID id);
+
+    void establecerPrincipal(UUID id);
 
     AlmacenDto findById(UUID id);
 
@@ -22,7 +26,15 @@ public interface IAlmacenService {
 
     PaginatedResponse search(Pageable pageable, List<FilterCriteria> filterCriteria);
 
+    PaginatedResponse findByFincaId(UUID fincaId, Pageable pageable);
+
     void addProducto(UUID almacenId, UUID fincaProductoId);
 
     void removeProducto(UUID almacenId, UUID fincaProductoId);
+
+    String generateInventarioCode(UUID fincaId);
+
+    boolean existsByNombreAndFincaId(String nombre, UUID fincaId);
+
+    boolean existsByNombreAndFincaIdAndIdNot(String nombre, UUID fincaId, UUID id);
 }

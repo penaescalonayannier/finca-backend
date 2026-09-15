@@ -21,10 +21,12 @@ public class SalidaDto {
     private DestinoSalida destino;
     private String numero;
     private UUID fincaProductoId;
+    private UUID almacenFincaProductoId; // Optional: when creating from almacen view
     private String fincaCode;
     private String fincaName;
     private String productoCode;
     private String productoName;
+    private String unidadMedida;
     private Integer stockActual;
     private LocalDateTime fecha;
     private String observaciones;
