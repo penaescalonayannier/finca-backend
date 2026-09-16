@@ -532,7 +532,7 @@ public class MovimientoStockServiceImpl implements IMovimientoStockService {
         }
 
         // Obtener info del producto
-        FincaProducto fp = fincaProductoRepository.findById(fincaProductoId)
+        FincaProducto fp = fincaProductoRepository.findByIdWithDetails(fincaProductoId)
                 .orElseThrow(() -> new BusinessNotFoundException(new GlobalBusinessException(
                         DomainErrorMessage.BUSINESS_NOT_FOUND,
                         new ErrorField("fincaProductoId", "FincaProducto no encontrado."))));
